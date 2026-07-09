@@ -1,0 +1,57 @@
+# RQ1b: Serialization Barrier — Independent Tokenizers (Robustness Check)
+# Same as RQ1a but each representation uses its own dedicated 50K SPM BPE tokenizer.
+# Raw → spm_raw_50k, Structural (AST/CFG/IR) → spm_struct_50k
+# Tests: does tokenizer independence change RQ1a conclusions?
+
+rq: rq1b
+
+models:
+  - bilstm
+  - textcnn
+
+representations:
+  - raw
+  - ast_seq
+  - cfg_seq
+  - ir_seq
+
+datasets:
+  - bcbench
+  - ojclone
+  - devign
+
+tokenizer_type: spm
+tokenizer_path: data/processed/spm_shared_50k.model
+
+representation_tokenizers:
+  raw:
+    tokenizer_type: spm
+    tokenizer_path: data/processed/spm_raw_50k.model
+  ast_seq:
+    tokenizer_type: spm
+    tokenizer_path: data/processed/spm_struct_50k.model
+  cfg_seq:
+    tokenizer_type: spm
+    tokenizer_path: data/processed/spm_struct_50k.model
+  ir_seq:
+    tokenizer_type: spm
+    tokenizer_path: data/processed/spm_struct_50k.model
+
+vocab_size: 50000
+
+lr_candidates:
+  - 0.0001
+  - 0.0005
+  - 0.001
+lr: 0.0005
+
+batch_size: 32
+batch_size_candidates: []
+
+max_epochs: 50
+patience: 5
+warmup_ratio: 0.0
+
+search_lr: true
+search_batch: false
+encoder_only: true

@@ -75,8 +75,12 @@ def run_one_condition(
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     model_cfg = config.get("model_configs", {}).get(model_type, {})
-    tok_type = model_cfg.get("tokenizer_type", config["tokenizer_type"])
-    tok_path = model_cfg.get("tokenizer_path", config["tokenizer_path"])
+
+    # Per-representation tokenizer override (for RQ1b independent tokenizers)
+    repr_tok = config.get("representation_tokenizers", {}).get(repr_name, {})
+
+    tok_type = repr_tok.get("tokenizer_type") or model_cfg.get("tokenizer_type", config["tokenizer_type"])
+    tok_path = repr_tok.get("tokenizer_path") or model_cfg.get("tokenizer_path", config["tokenizer_path"])
     vocab_size = model_cfg.get("vocab_size", config.get("vocab_size", 30000))
     encoder_only = model_cfg.get("encoder_only", config.get("encoder_only", True))
     batch_size = model_cfg.get("batch_size", config["batch_size"])
