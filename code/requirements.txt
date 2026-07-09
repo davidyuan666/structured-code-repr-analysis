@@ -1,0 +1,14 @@
+torch>=1.13.0
+transformers>=4.30.0
+sentencepiece>=0.1.99
+scikit-learn>=1.0.0
+scipy>=1.7.0
+numpy>=1.21.0
+tree-sitter>=0.21.0
+tree-sitter-java>=0.21.0
+tree-sitter-c>=0.21.0
+tree-sitter-cpp>=0.21.0
+pyyaml>=6.0
+tqdm>=4.62.0
+datasets>=2.14.0
+peft>=0.7.0

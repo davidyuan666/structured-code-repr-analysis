@@ -1,0 +1,59 @@
+# RQ4: Traversal Sensitivity
+# Same AST serialized with 4 traversal strategies: BFS, DFS-pre, DFS-post, Random.
+# Three-tier model progression: BiLSTM (no PT) -> BERT-base (NL PT) -> UniXcoder (code PT).
+# Tests H4: traversal significantly affects performance; pre-training may reduce sensitivity.
+
+rq: rq4
+
+models:
+  - bilstm
+  - bert_base
+  - unixcoder
+
+representations:
+  - ast_seq_bfs
+  - ast_seq_dfs_pre
+  - ast_seq_dfs_post
+  - ast_seq_random
+
+datasets:
+  - bcbench
+  - ojclone
+  - devign
+
+tokenizer_type: hf
+tokenizer_path: bert_base
+
+lr_candidates:
+  - 0.00001
+  - 0.00003
+  - 0.00005
+lr: 0.00003
+
+batch_size: 16
+batch_size_candidates:
+  - 16
+  - 32
+
+max_epochs: 10
+patience: 0
+warmup_ratio: 0.10
+
+search_lr: true
+search_batch: true
+encoder_only: true
+
+model_configs:
+  bilstm:
+    tokenizer_type: spm
+    tokenizer_path: data/processed/spm_shared_50k.model
+    vocab_size: 50000
+    lr_candidates:
+      - 0.0001
+      - 0.0005
+      - 0.001
+    lr: 0.0005
+    batch_size: 32
+    max_epochs: 50
+    patience: 5
+    warmup_ratio: 0.0

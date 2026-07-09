@@ -1,0 +1,49 @@
+# RQ3: Vocabulary Gap under LoRA Fine-Tuning
+# Pre-trained models with LoRA adapters; embedding layer frozen.
+# Tests H3: frozen embeddings exacerbate the vocabulary gap.
+# degration = Δ(FT) - Δ(LoRA) > 0 expected.
+
+rq: rq3
+
+models:
+  - codebert
+  - codet5
+
+representations:
+  - raw
+  - ast_seq
+  - ir_seq
+
+datasets:
+  - bcbench
+  - ojclone
+  - devign
+
+tokenizer_type: hf
+tokenizer_path: codebert
+
+lora: true
+
+lr_candidates:
+  - 0.000005
+  - 0.00001
+  - 0.00003
+  - 0.00005
+lr: 0.00003
+
+batch_size: 16
+batch_size_candidates:
+  - 16
+  - 32
+
+codet5_batch_size_candidates:
+  - 8
+  - 16
+
+max_epochs: 10
+patience: 0
+warmup_ratio: 0.20
+
+search_lr: true
+search_batch: true
+encoder_only: true

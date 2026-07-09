@@ -1,0 +1,12 @@
+code/data/
+code/results/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+sn-article.pdf
+.idea/
+*.swp
+.DS_Store
+parquet_cache/
+analysis/

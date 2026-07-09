@@ -1,0 +1,42 @@
+# RQ1: Serialization Barrier
+# Traditional NNs (BiLSTM, TextCNN) with controlled vocabulary (shared sentencepiece 50K).
+# Tests H1: under controlled vocab, structured reprs do NOT significantly outperform raw code.
+
+rq: rq1
+
+models:
+  - bilstm
+  - textcnn
+
+representations:
+  - raw
+  - ast_seq
+  - cfg_seq
+  - ir_seq
+
+datasets:
+  - bcbench
+  - ojclone
+  - devign
+
+tokenizer_type: spm
+tokenizer_path: data/processed/spm_shared_50k.model
+
+vocab_size: 50000
+
+lr_candidates:
+  - 0.0001
+  - 0.0005
+  - 0.001
+lr: 0.0005
+
+batch_size: 32
+batch_size_candidates: []
+
+max_epochs: 50
+patience: 5
+warmup_ratio: 0.0
+
+search_lr: true
+search_batch: false
+encoder_only: true

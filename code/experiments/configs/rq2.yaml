@@ -1,0 +1,45 @@
+# RQ2: Vocabulary Gap under Full Fine-Tuning
+# Pre-trained models (CodeBERT, CodeT5) fine-tuned with native tokenizers.
+# Tests H2: structured repr gains shrink vs RQ1 due to subword fragmentation.
+
+rq: rq2
+
+models:
+  - codebert
+  - codet5
+
+representations:
+  - raw
+  - ast_seq
+  - ir_seq
+
+datasets:
+  - bcbench
+  - ojclone
+  - devign
+
+tokenizer_type: hf
+tokenizer_path: codebert
+
+lr_candidates:
+  - 0.00001
+  - 0.00003
+  - 0.00005
+lr: 0.00003
+
+batch_size: 16
+batch_size_candidates:
+  - 16
+  - 32
+
+codet5_batch_size_candidates:
+  - 8
+  - 16
+
+max_epochs: 10
+patience: 0
+warmup_ratio: 0.10
+
+search_lr: true
+search_batch: true
+encoder_only: true
