@@ -55,14 +55,19 @@ echo "  Done"
 
 echo ""
 echo "[4/4] Verifying data..."
+PROC_DIR="$(pwd)/code/data/processed"
+echo "  Looking in: $PROC_DIR"
 python -c "
 from pathlib import Path
-d = Path('code/data/processed')
+import os
+d = Path(os.environ.get('PROC_DIR', 'code/data/processed'))
 checks = {
     'OJClone raw train': d / 'ojclone' / 'raw' / 'train.jsonl',
     'OJClone AST train': d / 'ojclone' / 'ast_seq' / 'train.jsonl',
     'Devign raw train':  d / 'devign' / 'raw' / 'train.jsonl',
+    'Devign AST train':  d / 'devign' / 'ast_seq' / 'train.jsonl',
     'BCBench raw train': d / 'bcbench' / 'raw' / 'train.jsonl',
+    'BCBench AST train': d / 'bcbench' / 'ast_seq' / 'train.jsonl',
     'SPM shared model':  d / 'spm_shared_50k.model',
     'SPM raw model':     d / 'spm_raw_50k.model',
     'SPM struct model':  d / 'spm_struct_50k.model',
@@ -71,7 +76,7 @@ ok = all(p.exists() for p in checks.values())
 for name, path in checks.items():
     print(f'  {\"OK\" if path.exists() else \"MISSING\"}: {name}')
 if not ok:
-    print('\n  Some files missing. If auto-download failed, manually place structured-code-repr.zip in code/data/processed/')
+    print('\n  Some files missing. Re-upload structured-code-repr.zip to code/data/processed/')
     exit(1)
 print('  All data verified')
 "
