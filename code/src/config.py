@@ -11,22 +11,31 @@ RAW_DIR = DATA_DIR / "raw"
 PROCESSED_DIR = DATA_DIR / "processed"
 RESULTS_DIR = CODE_DIR / "results"
 
-# Safe path for SPM (avoids Unicode issues in C++ backends)
+# Safe path for SPM (avoids Unicode issues in C++ backends on Windows)
 _SPM_CANDIDATE = PROCESSED_DIR / "spm_shared_50k.model"
 if not _SPM_CANDIDATE.exists():
-    _SPM_CANDIDATE = Path(__file__).resolve().parent.parent / "data" / "processed" / "spm_shared_50k.model"
-SPM_MODEL_PATH = str(_SPM_CANDIDATE.resolve()).encode("ascii", errors="replace").decode("ascii")
-if "?" in SPM_MODEL_PATH or not _SPM_CANDIDATE.exists():
-    import tempfile, shutil
-    _tmp_dir = Path(tempfile.gettempdir()) / "opencode_spm"
-    _tmp_dir.mkdir(exist_ok=True)
-    _tmp_model = _tmp_dir / "spm_shared_50k.model"
-    if not _tmp_model.exists() and _SPM_CANDIDATE.exists():
-        shutil.copy(_SPM_CANDIDATE, _tmp_model)
-        _vocab_src = _SPM_CANDIDATE.with_suffix(".vocab")
-        if _vocab_src.exists():
-            shutil.copy(_vocab_src, _tmp_dir / "spm_shared_50k.vocab")
-    SPM_MODEL_PATH = str(_tmp_model.resolve())
+    # Try searching recursively (handle nested extraction from zip)
+    _found = list(PROCESSED_DIR.rglob("spm_shared_50k.model"))
+    if _found:
+        _SPM_CANDIDATE = _found[0]
+
+SPM_MODEL_PATH = str(_SPM_CANDIDATE.resolve()) if _SPM_CANDIDATE.exists() else ""
+
+# Only use tempdir fallback when path contains non-ASCII chars (Windows Chinese path workaround)
+if SPM_MODEL_PATH:
+    try:
+        SPM_MODEL_PATH.encode("ascii")
+    except UnicodeEncodeError:
+        import tempfile, shutil
+        _tmp_dir = Path(tempfile.gettempdir()) / "opencode_spm"
+        _tmp_dir.mkdir(exist_ok=True)
+        _tmp_model = _tmp_dir / "spm_shared_50k.model"
+        if not _tmp_model.exists():
+            shutil.copy(_SPM_CANDIDATE, _tmp_model)
+            _vocab_src = _SPM_CANDIDATE.with_suffix(".vocab")
+            if _vocab_src.exists():
+                shutil.copy(_vocab_src, _tmp_dir / "spm_shared_50k.vocab")
+        SPM_MODEL_PATH = str(_tmp_model.resolve())
 
 DATASETS = ["bcbench", "ojclone", "devign"]
 
