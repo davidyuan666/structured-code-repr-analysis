@@ -1,0 +1,321 @@
+\begin{thebibliography}{46}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Allamanis et~al.(2018{\natexlab{a}})Allamanis, Barr, Devanbu, and
+  Sutton]{allamanis2018survey}
+Miltiadis Allamanis, Earl~T. Barr, Premkumar Devanbu, and Charles Sutton.
+\newblock A survey of machine learning for big code and naturalness.
+\newblock \emph{ACM Computing Surveys}, 51\penalty0 (4):\penalty0 1--37,
+  2018{\natexlab{a}}.
+
+\bibitem[Baxter et~al.(1998)Baxter, Yahin, Moura, Sant'Anna, and
+  Bier]{baxter1998clone}
+Ira~D. Baxter, Andrew Yahin, Leonardo Moura, Marcelo Sant'Anna, and Lorraine
+  Bier.
+\newblock Clone detection using abstract syntax trees.
+\newblock In \emph{Proceedings of the International Conference on Software
+  Maintenance}, pages 368--377, 1998.
+
+\bibitem[Jiang et~al.(2007)Jiang, Misherghi, Su, and Glondu]{jiang2007deckard}
+Lingxiao Jiang, Ghassan Misherghi, Zhendong Su, and Stephane Glondu.
+\newblock {DECKARD}: Scalable and accurate tree-based detection of code clones.
+\newblock In \emph{Proceedings of the 29th International Conference on Software
+  Engineering}, pages 96--105, 2007.
+
+\bibitem[Allamanis et~al.(2018{\natexlab{b}})Allamanis, Brockschmidt, and
+  Khademi]{allamanis2018graphs}
+Miltiadis Allamanis, Marc Brockschmidt, and Mahmoud Khademi.
+\newblock Learning to represent programs with graphs.
+\newblock In \emph{International Conference on Learning Representations},
+  2018{\natexlab{b}}.
+
+\bibitem[Guo et~al.(2021)Guo, Ren, Lu, et~al.]{guo2021graphcodebert}
+Daya Guo, Shuo Ren, Shuai Lu, et~al.
+\newblock {GraphCodeBERT}: Pre-training code representations with data flow.
+\newblock In \emph{International Conference on Learning Representations}, 2021.
+
+\bibitem[Ferrante et~al.(1987)Ferrante, Ottenstein, and
+  Warren]{ferrante1987pdg}
+Jeanne Ferrante, Karl~J. Ottenstein, and Joe~D. Warren.
+\newblock The program dependence graph and its use in optimization.
+\newblock \emph{ACM Transactions on Programming Languages and Systems},
+  9\penalty0 (3):\penalty0 319--349, 1987.
+
+\bibitem[Yuan et~al.(2023)Yuan, Fang, Zhang, Xu, and Luo]{yuan2023clone}
+Dawei Yuan, Sen Fang, Tao Zhang, Zhou Xu, and Xiapu Luo.
+\newblock Java code clone detection by exploiting semantic and syntax
+  information from intermediate code-based graph.
+\newblock \emph{IEEE Transactions on Reliability}, 72\penalty0 (2):\penalty0
+  511--526, 2023.
+
+\bibitem[Feng et~al.(2020)Feng, Guo, Tang, et~al.]{feng2020codebert}
+Zhangyin Feng, Daya Guo, Duyu Tang, et~al.
+\newblock {CodeBERT}: A pre-trained model for programming and natural
+  languages.
+\newblock In \emph{Findings of the Association for Computational Linguistics:
+  EMNLP 2020}, pages 1536--1547, 2020.
+
+\bibitem[Wang et~al.(2021)Wang, Wang, Joty, and Hoi]{wang2021codet5}
+Yue Wang, Weishi Wang, Shafiq Joty, and Steven~C.H. Hoi.
+\newblock {CodeT5}: Identifier-aware unified pre-trained encoder-decoder models
+  for code understanding and generation.
+\newblock In \emph{Proceedings of the 2021 Conference on Empirical Methods in
+  Natural Language Processing}, pages 8696--8708, 2021.
+
+\bibitem[Hu et~al.(2022)Hu, Shen, Wallis, Allen-Zhu, Li, Wang, Wang, and
+  Chen]{hu2022lora}
+Edward~J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean
+  Wang, Lu~Wang, and Weizhu Chen.
+\newblock {LoRA}: Low-rank adaptation of large language models.
+\newblock In \emph{International Conference on Learning Representations}, 2022.
+
+\bibitem[Koschke(2006)]{koschke2006survey}
+Rainer Koschke.
+\newblock Survey of research on software clones.
+\newblock \emph{Dagstuhl Seminar Proceedings}, 2006.
+
+\bibitem[Gu et~al.(2018)Gu, Zhang, and Kim]{gu2018deepcs}
+Xiaodong Gu, Hongyu Zhang, and Sunghun Kim.
+\newblock Deep code search.
+\newblock In \emph{Proceedings of the 40th International Conference on Software
+  Engineering}, pages 933--944, 2018.
+
+\bibitem[Chen et~al.(2021)Chen, Kommrusch, Tufano, Pouchet, Poshyvanyk, and
+  Monperrus]{chen2019sequencer}
+Zimin Chen, Steve~James Kommrusch, Michele Tufano, Louis-No\"{e}l Pouchet,
+  Denys Poshyvanyk, and Martin Monperrus.
+\newblock {SequenceR}: Sequence-to-sequence learning for end-to-end program
+  repair.
+\newblock In \emph{IEEE Transactions on Software Engineering}, volume~47, pages
+  1943--1959. IEEE, 2021.
+
+\bibitem[Tai et~al.(2015)Tai, Socher, and Manning]{tai2015treelstm}
+Kai~Sheng Tai, Richard Socher, and Christopher~D. Manning.
+\newblock Improved semantic representations from tree-structured long
+  short-term memory networks.
+\newblock In \emph{Proceedings of the 53rd Annual Meeting of the Association
+  for Computational Linguistics}, pages 1556--1566, 2015.
+
+\bibitem[Alon et~al.(2019)Alon, Zilberstein, Levy, and Yahav]{alon2019code2vec}
+Uri Alon, Meital Zilberstein, Omer Levy, and Eran Yahav.
+\newblock {code2vec}: Learning distributed representations of code.
+\newblock \emph{Proceedings of the ACM on Programming Languages}, 3\penalty0
+  (POPL):\penalty0 1--29, 2019.
+
+\bibitem[Zhang et~al.(2019)Zhang, Wang, Zhang, Sun, Wang, and
+  Liu]{zhang2019astnn}
+Jian Zhang, Xu~Wang, Hongyu Zhang, Hailong Sun, Kaixuan Wang, and Xudong Liu.
+\newblock A novel neural source code representation based on abstract syntax
+  tree.
+\newblock In \emph{Proceedings of the 41st International Conference on Software
+  Engineering}, pages 783--794, 2019.
+
+\bibitem[Wang et~al.(2020)Wang, Li, Ma, Xia, and Jin]{wang2020detecting}
+Wenhan Wang, Ge~Li, Bo~Ma, Xin Xia, and Zhi Jin.
+\newblock Detecting code clones with graph neural network and flow-augmented
+  abstract syntax tree.
+\newblock In \emph{Proceedings of the 27th IEEE International Conference on
+  Software Analysis, Evolution and Reengineering}, pages 261--271, 2020.
+
+\bibitem[McCabe(1976)]{mccabe1976}
+Thomas~J. McCabe.
+\newblock A complexity measure.
+\newblock \emph{IEEE Transactions on Software Engineering}, SE-2\penalty0
+  (4):\penalty0 308--320, 1976.
+
+\bibitem[Wang et~al.(2016)Wang, Liu, and Tan]{wang2016deepdefect}
+Song Wang, Taiyue Liu, and Lin Tan.
+\newblock Deep learning-based defect prediction on source code.
+\newblock In \emph{Proceedings of the 31st IEEE/ACM International Conference on
+  Automated Software Engineering (ASE)}, pages 167--177, 2016.
+
+\bibitem[Xu et~al.(2017)Xu, Liu, Feng, Yin, Song, and Song]{xu2017neural}
+Xiaojun Xu, Chang Liu, Qian Feng, Heng Yin, Le~Song, and Dawn Song.
+\newblock Neural network-based graph embedding for cross-platform binary code
+  similarity detection.
+\newblock In \emph{Proceedings of the 2017 ACM SIGSAC Conference on Computer
+  and Communications Security}, pages 363--376, 2017.
+
+\bibitem[Hellendoorn et~al.(2020)Hellendoorn, Sutton, Singh, Maniatis, and
+  Bieber]{hellendoorn2020global}
+Vincent~J. Hellendoorn, Charles Sutton, Rishabh Singh, Petros Maniatis, and
+  David Bieber.
+\newblock Global relational models of source code.
+\newblock In \emph{International Conference on Learning Representations}, 2020.
+
+\bibitem[Guo et~al.(2022)Guo, Lu, Duan, Wang, Zhou, and Yin]{guo2022unixcoder}
+Daya Guo, Shuai Lu, Nan Duan, Yanlin Wang, Ming Zhou, and Jian Yin.
+\newblock {UniXcoder}: Unified cross-modal pre-training for code
+  representation.
+\newblock In \emph{Proceedings of the 60th Annual Meeting of the Association
+  for Computational Linguistics}, pages 7212--7225, 2022.
+
+\bibitem[Ahmad et~al.(2021)Ahmad, Chakraborty, Ray, and Chang]{ahmad2021plbart}
+Wasi Ahmad, Saikat Chakraborty, Baishakhi Ray, and Kai-Wei Chang.
+\newblock Unified pre-training for program understanding and generation.
+\newblock In \emph{Proceedings of the 2021 Conference of the North American
+  Chapter of the Association for Computational Linguistics}, pages 2655--2668,
+  2021.
+
+\bibitem[Kanade et~al.(2020)Kanade, Maniatis, Balakrishnan, and
+  Shi]{kanade2020pre}
+Aditya Kanade, Petros Maniatis, Gogul Balakrishnan, and Kensen Shi.
+\newblock Learning and evaluating contextual embedding of source code.
+\newblock In \emph{International Conference on Machine Learning}, pages
+  5110--5121, 2020.
+
+\bibitem[Houlsby et~al.(2019)Houlsby, Giurgiu, Jastrzebski, Morrone,
+  De~Laroussilhe, Gesmundo, Attariyan, and Gelly]{houlsby2019adapter}
+Neil Houlsby, Andrei Giurgiu, Stanislaw Jastrzebski, Bruna Morrone, Quentin
+  De~Laroussilhe, Andrea Gesmundo, Mona Attariyan, and Sylvain Gelly.
+\newblock Parameter-efficient transfer learning for {NLP}.
+\newblock In \emph{International Conference on Machine Learning}, pages
+  2790--2799, 2019.
+
+\bibitem[Li and Liang(2021)]{li2021prefix}
+Xiang~Lisa Li and Percy Liang.
+\newblock Prefix-tuning: Optimizing continuous prompts for generation.
+\newblock In \emph{Proceedings of the 59th Annual Meeting of the Association
+  for Computational Linguistics}, pages 4582--4597, 2021.
+
+\bibitem[Kamiya et~al.(2002)Kamiya, Kusumoto, and Inoue]{kamiya2002ccfinder}
+Toshihiro Kamiya, Shinji Kusumoto, and Katsuro Inoue.
+\newblock {CCFinder}: A multilinguistic token-based code clone detection system
+  for large scale source code.
+\newblock volume~28, pages 654--670. IEEE, 2002.
+
+\bibitem[Sajnani et~al.(2016)Sajnani, Saini, Svajlenko, Roy, and
+  Lopes]{sajnani2016sourcerercc}
+Hitesh Sajnani, Vaibhav Saini, Jeffrey Svajlenko, Chanchal~K. Roy, and
+  Cristina~V. Lopes.
+\newblock {SourcererCC}: Scaling code clone detection to big-code.
+\newblock In \emph{Proceedings of the 38th International Conference on Software
+  Engineering}, pages 1157--1168, 2016.
+
+\bibitem[Komondoor and Horwitz(2001)]{komondoor2001pdgclone}
+Raghavan Komondoor and Susan Horwitz.
+\newblock Using slicing to identify duplication in source code.
+\newblock In \emph{Proceedings of the 8th International Symposium on Static
+  Analysis}, pages 40--56, 2001.
+
+\bibitem[White et~al.(2016)White, Tufano, Vendome, and
+  Poshyvanyk]{white2016deep}
+Martin White, Michele Tufano, Christopher Vendome, and Denys Poshyvanyk.
+\newblock Deep learning code fragments for code clone detection.
+\newblock In \emph{Proceedings of the 31st IEEE/ACM International Conference on
+  Automated Software Engineering}, pages 87--98, 2016.
+
+\bibitem[Wei and Li(2019)]{wei2019cdlhd}
+Huihui Wei and Ming Li.
+\newblock {CDLH}: Learning to detect code clones using deep learning.
+\newblock In \emph{Proceedings of the 34th IEEE/ACM International Conference on
+  Automated Software Engineering}, pages 367--377, 2019.
+
+\bibitem[Li et~al.(2017)Li, Feng, Zhuang, Meng, and Ryder]{li2017cclearner}
+Liuqing Li, He~Feng, Wenjie Zhuang, Na~Meng, and Barbara Ryder.
+\newblock {CCLearner}: A deep learning-based clone detection approach.
+\newblock In \emph{Proceedings of the 33rd IEEE International Conference on
+  Software Maintenance and Evolution}, pages 249--260, 2017.
+
+\bibitem[Li et~al.(2023)Li, Zhang, Luo, Cai, Fang, and Yuan]{li2023understand}
+Yao Li, Tao Zhang, Xiapu Luo, Haipeng Cai, Sen Fang, and Dawei Yuan.
+\newblock Do pretrained language models indeed understand software engineering
+  tasks?
+\newblock \emph{IEEE Transactions on Software Engineering}, 49\penalty0
+  (10):\penalty0 4639--4655, 2023.
+
+\bibitem[Jain et~al.(2021)Jain, Jain, Zhang, Abbeel, Gonzalez, and
+  Stoica]{jain2021contrastive}
+Paras Jain, Ajay Jain, Tianjun Zhang, Pieter Abbeel, Joseph~E. Gonzalez, and
+  Ion Stoica.
+\newblock Contrastive code representation learning.
+\newblock In \emph{Proceedings of the 2021 Conference on Empirical Methods in
+  Natural Language Processing}, pages 5954--5971, 2021.
+
+\bibitem[Vaswani et~al.(2017)Vaswani, Shazeer, Parmar,
+  et~al.]{vaswani2017attention}
+Ashish Vaswani, Noam Shazeer, Niki Parmar, et~al.
+\newblock Attention is all you need.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~30, pages 5998--6008, 2017.
+
+\bibitem[Shaw et~al.(2018)Shaw, Uszkoreit, and Vaswani]{shaw2018relpos}
+Peter Shaw, Jakob Uszkoreit, and Ashish Vaswani.
+\newblock Self-attention with relative position representations.
+\newblock In \emph{Proceedings of the 2018 Conference of the North American
+  Chapter of the Association for Computational Linguistics}, pages 464--468,
+  2018.
+
+\bibitem[Svajlenko et~al.(2014)Svajlenko, Islam, Keivanloo, Roy, and
+  Mia]{svajlenko2014bigclonebench}
+Jeffrey Svajlenko, Judith~F. Islam, Iman Keivanloo, Chanchal~K. Roy, and
+  Mohammad~Mamun Mia.
+\newblock Towards a big data curated benchmark of inter-project code clones.
+\newblock In \emph{Proceedings of the 30th IEEE International Conference on
+  Software Maintenance and Evolution}, pages 476--480, 2014.
+
+\bibitem[Svajlenko and Roy(2018)]{svajlenko2018bigclonebench}
+Jeffrey Svajlenko and Chanchal~K. Roy.
+\newblock A big data curated benchmark of inter-project code clones.
+\newblock \emph{Empirical Software Engineering}, 2018.
+
+\bibitem[Mou et~al.(2016)Mou, Li, Zhang, Wang, and Jin]{mou2016ojclone}
+Lili Mou, Ge~Li, Lu~Zhang, Tao Wang, and Zhi Jin.
+\newblock Convolutional neural networks over tree structures for programming
+  language processing.
+\newblock In \emph{Proceedings of the AAAI Conference on Artificial
+  Intelligence}, volume~30, 2016.
+
+\bibitem[Zhou et~al.(2019)Zhou, Liu, Siow, Du, and Liu]{zhou2019devign}
+Yaqin Zhou, Shangqing Liu, Jingkai Siow, Xiaoning Du, and Yang Liu.
+\newblock Devign: Effective vulnerability identification by learning
+  comprehensive program semantics via graph neural networks.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~32, 2019.
+
+\bibitem[Lu et~al.(2021)Lu, Guo, Ren, et~al.]{lu2021codexglue}
+Shuai Lu, Daya Guo, Shuo Ren, et~al.
+\newblock {CodeXGLUE}: A machine learning benchmark dataset for code
+  understanding and generation.
+\newblock In \emph{Advances in Neural Information Processing Systems (Datasets
+  and Benchmarks)}, 2021.
+
+\bibitem[Bruns et~al.(2020)]{bruns2020treesitter}
+Max Bruns et~al.
+\newblock Tree-sitter: A parser generator tool and an incremental parsing
+  library.
+\newblock \url{https://github.com/tree-sitter/tree-sitter}, 2020.
+
+\bibitem[Luong et~al.(2015)Luong, Pham, and Manning]{luong2015attn}
+Minh-Thang Luong, Hieu Pham, and Christopher~D. Manning.
+\newblock Effective approaches to attention-based neural machine translation.
+\newblock In \emph{Proceedings of the 2015 Conference on Empirical Methods in
+  Natural Language Processing}, pages 1412--1421, 2015.
+
+\bibitem[Kim(2014)]{kim2014cnn}
+Yoon Kim.
+\newblock Convolutional neural networks for sentence classification.
+\newblock In \emph{Proceedings of the 2014 Conference on Empirical Methods in
+  Natural Language Processing}, pages 1746--1751, 2014.
+
+\bibitem[Devlin et~al.(2019)Devlin, Chang, Lee, and Toutanova]{devlin2019bert}
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova.
+\newblock {BERT}: Pre-training of deep bidirectional transformers for language
+  understanding.
+\newblock In \emph{Proceedings of the 2019 Conference of the North American
+  Chapter of the Association for Computational Linguistics}, pages 4171--4186,
+  2019.
+
+\bibitem[Kudo and Richardson(2018)]{kudo2018sentencepiece}
+Taku Kudo and John Richardson.
+\newblock Sentencepiece: A simple and language independent subword tokenizer
+  and detokenizer for neural text processing.
+\newblock In \emph{Proceedings of the 2018 Conference on Empirical Methods in
+  Natural Language Processing (EMNLP): System Demonstrations}, pages 66--71,
+  2018.
+
+\end{thebibliography}
