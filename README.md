@@ -10,12 +10,34 @@ Preprocessed structured code representations for clone detection and vulnerabili
 
 ## Representations
 
-| Representation | Description |
-|---------------|-------------|
-| `raw` | Whitespace-tokenized source code sequence |
-| `ast_seq` | AST node sequence (tree-sitter, DFS pre-order) |
-| `cfg_seq` | Control-flow skeleton (ENTRY→BRANCH/LOOP/JUMP/RETURN/FUNC→EXIT) |
-| `ir_seq` | Statement-level instruction sequence (EXPR, DECL, CALL, IF, ...) |
+Each dataset contains the following representation variants under `code/data/processed/<dataset>/`:
+
+| Directory | Description | Used In |
+|-----------|-------------|---------|
+| `raw` | Whitespace-tokenized source code (baseline) | RQ1, RQ2, RQ3 |
+| `ast_seq` | AST DFS pre-order, identifiers preserved (= `ast_id`) | RQ1, RQ2, RQ3, Ablation |
+| `ast_seq_bfs` | AST breadth-first traversal | RQ4 |
+| `ast_seq_dfs_post` | AST DFS post-order (children before parent) | RQ4 |
+| `ast_seq_random` | AST with random node ordering (control) | RQ4 |
+| `ast_noid` | AST with identifiers/literals abstracted to `ID`/`LIT` | Ablation |
+| `cfg_seq` | Control-flow skeleton: ENTRY→BRANCH/LOOP/JUMP/RETURN/FUNC→EXIT | RQ1 |
+| `ir_seq` | Statement-level instruction sequence: EXPR/DECL/CALL/IF/WHILE/... | RQ1, RQ2, RQ3 |
+
+Each directory contains `train.jsonl` / `val.jsonl` / `test.jsonl` (8:1:1 split). Clone detection tasks (BCBench, OJClone) use paired format `{"code_a": "...", "code_b": "...", "label": 0/1}`; vulnerability detection (Devign) uses single format `{"code": "...", "label": 0/1}`.
+
+### Per-Dataset Structure
+
+```
+code/data/processed/
+├── bcbench/   (Java, clone detection, 1.7M pairs, 8,063 unique sources)
+│   ├── raw/ train.jsonl val.jsonl test.jsonl
+│   ├── ast_seq/ ast_seq_bfs/ ast_seq_dfs_post/ ast_seq_random/
+│   └── ast_noid/ cfg_seq/ ir_seq/
+├── devign/    (C, vulnerability detection, 27K samples, 27K unique sources)
+│   └── (same 8 directories)
+└── ojclone/   (C, clone detection, 106K pairs, 52K unique sources)
+    └── (same 8 directories)
+```
 
 ## Reproducibility
 
