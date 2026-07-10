@@ -18,6 +18,12 @@ echo "  OK"
 
 echo ""
 echo "[2/4] Installing Python packages (uv)..."
+
+# Ensure uv is available (AutoDL may not have it pre-installed)
+if ! command -v uv &> /dev/null; then
+    echo "  uv not found, installing..."
+    pip install uv -q
+fi
 uv pip install -r code/requirements_nogpu.txt --system --quiet
 echo "  transformers sentencepiece tree-sitter sklearn peft datasets ... OK"
 
