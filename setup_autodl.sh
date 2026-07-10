@@ -29,25 +29,33 @@ echo "  transformers sentencepiece tree-sitter sklearn peft datasets ... OK"
 
 echo ""
 echo "[3/4] Downloading dataset from ModelScope..."
+pip install modelscope -q
 python -c "
 from pathlib import Path
 proc = Path('code/data/processed')
 proc.mkdir(parents=True, exist_ok=True)
 zip_path = proc / 'processed.zip'
 if not zip_path.exists() or zip_path.stat().st_size < 100_000_000:
-    import subprocess
-    url = 'https://www.modelscope.cn/datasets/davidyuan666/StructuredCodeRepresentations/file/view/master/processed.zip'
-    print(f'  Downloading from ModelScope ...')
-    subprocess.run(['wget', '-O', str(zip_path), url], check=True)
-    print(f'  Downloaded {zip_path.stat().st_size/1024/1024:.0f} MB')
-else:
-    print(f'  Using cached {zip_path.stat().st_size/1024/1024:.0f} MB')
-print(f'  Extracting ...')
+    from modelscope.hub.file_download import dataset_file_download
+    dataset_file_download(
+        dataset_id='davidyuan666/StructuredCodeRepresentations',
+        file_path='processed.zip',
+        cache_dir=str(proc),
+    )
+    # Move from cache to expected location
+    for f in proc.rglob('processed.zip'):
+        import shutil
+        if f.resolve() != zip_path.resolve():
+            shutil.move(str(f), str(zip_path))
+        break
+if not zip_path.exists() or zip_path.stat().st_size < 100_000_000:
+    raise FileNotFoundError('Dataset download failed')
 import zipfile
+print(f'  Extracting {zip_path.stat().st_size/1024/1024:.0f} MB ...')
 with zipfile.ZipFile(str(zip_path), 'r') as zf:
     zf.extractall(str(proc))
 print('  Done')
-" || echo "  WARNING: auto-download failed. Download manually from https://www.modelscope.cn/datasets/davidyuan666/StructuredCodeRepresentations and place in code/data/processed/"
+" || echo "  WARNING: auto-download failed. Upload processed.zip manually to code/data/processed/"
 
 echo ""
 echo "[4/4] Verifying data..."
