@@ -80,6 +80,7 @@ if not ok:
     print('\n  Some files missing. If auto-download failed, manually place structured-code-repr.zip in code/data/processed/')
     exit(1)
 print('  All data verified')
+"
 
 echo ""
 echo "============================================"
