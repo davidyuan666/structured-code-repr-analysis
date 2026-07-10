@@ -30,9 +30,9 @@ echo "  transformers sentencepiece tree-sitter sklearn peft datasets ... OK"
 echo ""
 echo "[3/4] Downloading dataset from ModelScope..."
 pip install modelscope -q
-modelscope download davidyuan666/StructuredCodeRepresentations \
-  --files processed.zip --local_dir code/data/processed/
-unzip -o code/data/processed/processed.zip -d code/data/processed/
+ms download davidyuan666/StructuredCodeRepresentations processed.zip \
+  --repo-type dataset --local-dir code/data/
+unzip -o code/data/processed.zip -d code/data/processed/
 echo "  Done"
 
 echo ""
