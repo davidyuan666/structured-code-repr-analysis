@@ -1,26 +1,101 @@
 #!/bin/bash
-# AutoDL / GPU server setup for Structured Code Representations
-# torch is assumed pre-installed by the platform
+# AutoDL one-click setup for Structured Code Representations
+# torch / CUDA are pre-installed by AutoDL
 
 set -e
 
-echo "=== Installing dependencies (uv) ==="
-uv pip install -r code/requirements_nogpu.txt
+echo "============================================"
+echo " Structured Code Representations — AutoDL"
+echo "============================================"
 
 echo ""
-echo "=== Checking installation ==="
+echo "[1/4] Checking environment..."
+python -c "import torch; assert torch.cuda.is_available(), 'CUDA unavailable!'"
+echo "  PyTorch $(python -c 'import torch; print(torch.__version__)')"
+echo "  CUDA $(python -c 'import torch; print(torch.version.cuda)')"
+echo "  GPU   $(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)"
+echo "  OK"
+
+echo ""
+echo "[2/4] Installing Python packages (uv)..."
+uv pip install -r code/requirements_nogpu.txt --system --quiet
+echo "  transformers sentencepiece tree-sitter sklearn peft datasets ... OK"
+
+echo ""
+echo "[3/4] Downloading dataset from ModelScope..."
 python -c "
-import torch; print(f'PyTorch {torch.__version__}, CUDA: {torch.cuda.is_available()}')
-import transformers; print(f'Transformers {transformers.__version__}')
-import sentencepiece; import sklearn; import yaml; import tqdm; import datasets; import peft
-print('All packages OK')
-"
+from modelscope.hub.api import HubApi
+import os, zipfile, shutil
+from pathlib import Path
+
+proc = Path('code/data/processed')
+proc.mkdir(parents=True, exist_ok=True)
+
+print('  Downloading from davidyuan666/StructuredCodeRepresentations ...')
+api = HubApi()
+zip_path = proc / 'structured-code-repr.zip'
+if not zip_path.exists() or zip_path.stat().st_size < 100_000_000:
+    _ = api.dataset_download('davidyuan666/StructuredCodeRepresentations', local_dir=str(proc), zip_download=True)
+
+zip_path = proc / 'structured-code-repr.zip'
+if not zip_path.exists():
+    # Try alternate path
+    for f in proc.rglob('*.zip'):
+        shutil.copy(f, zip_path)
+        break
+
+if not zip_path.exists():
+    raise FileNotFoundError('Dataset zip not found. Download manually from https://www.modelscope.cn/datasets/davidyuan666/StructuredCodeRepresentations')
+
+print(f'  Extracting {zip_path.stat().st_size/1024/1024:.0f} MB ...')
+with zipfile.ZipFile(str(zip_path), 'r') as zf:
+    zf.extractall(str(proc))
+print('  Done')
+" || echo "  WARNING: auto-download failed. Download zip from https://www.modelscope.cn/datasets/davidyuan666/StructuredCodeRepresentations and unzip into code/data/processed/"
 
 echo ""
-echo "=== Downloading datasets from ModelScope ==="
-echo "Please manually download structured-code-repr.zip from:"
-echo "  https://www.modelscope.cn/datasets/davidyuan666/StructuredCodeRepresentations"
-echo "Then unzip into code/data/processed/"
+echo "[4/4] Verifying data..."
+python -c "
+from pathlib import Path
+d = Path('code/data/processed')
+checks = {
+    'OJClone raw train': d / 'ojclone' / 'raw' / 'train.jsonl',
+    'OJClone AST train': d / 'ojclone' / 'ast_seq' / 'train.jsonl',
+    'Devign raw train':  d / 'devign' / 'raw' / 'train.jsonl',
+    'BCBench raw train': d / 'bcbench' / 'raw' / 'train.jsonl',
+    'SPM shared model':  d / 'spm_shared_50k.model',
+    'SPM raw model':     d / 'spm_raw_50k.model',
+    'SPM struct model':  d / 'spm_struct_50k.model',
+}
+ok = all(p.exists() for p in checks.values())
+for name, path in checks.items():
+    print(f'  {\"OK\" if path.exists() else \"MISSING\"}: {name}')
+if not ok:
+    print('\n  Some files missing. If auto-download failed, manually place structured-code-repr.zip in code/data/processed/')
+    exit(1)
+print('  All data verified')
+
 echo ""
-echo "=== Ready to run ==="
-echo "python code/experiments/run.py --config code/experiments/configs/rq1.yaml"
+echo "============================================"
+echo " Setup complete!"
+echo "============================================"
+echo ""
+echo " Run experiments:"
+echo ""
+echo "  # RQ1a: shared vocabulary (primary)"
+echo "  python code/experiments/run.py --config code/experiments/configs/rq1.yaml"
+echo ""
+echo "  # RQ1b: independent tokenizers (robustness)"
+echo "  python code/experiments/run.py --config code/experiments/configs/rq1b.yaml"
+echo ""
+echo "  # RQ2:  full fine-tuning vocab gap"
+echo "  python code/experiments/run.py --config code/experiments/configs/rq2.yaml"
+echo ""
+echo "  # RQ3:  LoRA vocabulary gap"
+echo "  python code/experiments/run.py --config code/experiments/configs/rq3.yaml"
+echo ""
+echo "  # RQ4:  traversal sensitivity"
+echo "  python code/experiments/run.py --config code/experiments/configs/rq4.yaml"
+echo ""
+echo "  # Ablation: identifier contribution"
+echo "  python code/experiments/run.py --config code/experiments/configs/ablation.yaml"
