@@ -24,7 +24,7 @@ if ! command -v uv &> /dev/null; then
     echo "  uv not found, installing..."
     pip install uv -q
 fi
-uv pip install -r code/requirements_nogpu.txt --system --quiet
+uv pip install -r code/requirements_nogpu.txt --system
 echo "  transformers sentencepiece tree-sitter sklearn peft datasets ... OK"
 
 echo ""
