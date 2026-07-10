@@ -30,34 +30,24 @@ echo "  transformers sentencepiece tree-sitter sklearn peft datasets ... OK"
 echo ""
 echo "[3/4] Downloading dataset from ModelScope..."
 python -c "
-from modelscope.hub.api import HubApi
-import os, zipfile, shutil
 from pathlib import Path
-
 proc = Path('code/data/processed')
 proc.mkdir(parents=True, exist_ok=True)
-
-print('  Downloading from davidyuan666/StructuredCodeRepresentations ...')
-api = HubApi()
-zip_path = proc / 'structured-code-repr.zip'
+zip_path = proc / 'processed.zip'
 if not zip_path.exists() or zip_path.stat().st_size < 100_000_000:
-    _ = api.dataset_download('davidyuan666/StructuredCodeRepresentations', local_dir=str(proc), zip_download=True)
-
-zip_path = proc / 'structured-code-repr.zip'
-if not zip_path.exists():
-    # Try alternate path
-    for f in proc.rglob('*.zip'):
-        shutil.copy(f, zip_path)
-        break
-
-if not zip_path.exists():
-    raise FileNotFoundError('Dataset zip not found. Download manually from https://www.modelscope.cn/datasets/davidyuan666/StructuredCodeRepresentations')
-
-print(f'  Extracting {zip_path.stat().st_size/1024/1024:.0f} MB ...')
+    import subprocess
+    url = 'https://www.modelscope.cn/datasets/davidyuan666/StructuredCodeRepresentations/file/view/master/processed.zip'
+    print(f'  Downloading from ModelScope ...')
+    subprocess.run(['wget', '-O', str(zip_path), url], check=True)
+    print(f'  Downloaded {zip_path.stat().st_size/1024/1024:.0f} MB')
+else:
+    print(f'  Using cached {zip_path.stat().st_size/1024/1024:.0f} MB')
+print(f'  Extracting ...')
+import zipfile
 with zipfile.ZipFile(str(zip_path), 'r') as zf:
     zf.extractall(str(proc))
 print('  Done')
-" || echo "  WARNING: auto-download failed. Download zip from https://www.modelscope.cn/datasets/davidyuan666/StructuredCodeRepresentations and unzip into code/data/processed/"
+" || echo "  WARNING: auto-download failed. Download manually from https://www.modelscope.cn/datasets/davidyuan666/StructuredCodeRepresentations and place in code/data/processed/"
 
 echo ""
 echo "[4/4] Verifying data..."
