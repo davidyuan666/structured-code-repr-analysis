@@ -11,7 +11,7 @@ models:
   - unixcoder
 
 representations:
-  - ast_id
+  - ast_seq
   - ast_noid
 
 datasets:

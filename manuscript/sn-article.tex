@@ -1,0 +1,869 @@
+%% sn-article.tex --- Revisiting Structured Code Representations (RQ-structured revision)
+%% Compiles with the bundled compatibility class (manuscript/sn-jnl.cls).
+%% Target: JSS / IST / AUSE (Springer Nature LaTeX template)
+%%
+%% == SUBMISSION CHECKLIST ==
+%%  1. Replace sn-jnl.cls with official Springer Nature template
+%%     \documentclass[sn-basic,smallextended]{sn-jnl}
+%%  2. \bibliographystyle{unsrtnat} -> \bibliographystyle{sn-basic}
+%%  3. Flatten: move figures/tables into root (no subfolders)
+%%  4. Manuscript <= 25 pages; abstract 150-250 words; 4-6 keywords
+%%  5. Replace all \newcommand{...}{TBD} with actual experimental results
+\documentclass[pdflatex,sn-mathphys,Numbered]{sn-jnl}
+
+\usepackage{placeins}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[font=small,labelfont=bf]{caption}
+
+%% ===================================================================
+%% Experimental Result Placeholders --- replace with actual values
+%% after running the complete experimental suite.
+%% ===================================================================
+
+%% RQ1: Traditional NN with controlled vocabulary
+\newcommand{\RQOneRawF}{TBD}        % Raw Code F1
+\newcommand{\RQOneASTF}{TBD}        % AST-Seq F1
+\newcommand{\RQOneIRF}{TBD}         % IR-Seq F1
+\newcommand{\RQOneCFGF}{TBD}        % CFG-Seq F1
+\newcommand{\RQOnePval}{TBD}        % Friedman p-value
+\newcommand{\RQOneEffAST}{TBD}      % Cohen's d: AST vs Raw
+\newcommand{\RQOneEffIR}{TBD}       % Cohen's d: IR vs Raw
+
+%% RQ2: Full fine-tuning vocab gap
+\newcommand{\RQTwoRawF}{TBD}        % Raw Code F1 (Full FT)
+\newcommand{\RQTwoASTF}{TBD}        % AST-Seq F1 (Full FT)
+\newcommand{\RQTwoIRF}{TBD}         % IR-Seq F1 (Full FT)
+\newcommand{\RQTwoPval}{TBD}        % Friedman p-value
+\newcommand{\RQTwoDeltaAST}{TBD}    % Delta F1: AST over Raw
+\newcommand{\RQTwoDeltaIR}{TBD}     % Delta F1: IR over Raw
+
+%% RQ3: LoRA vocab gap
+\newcommand{\RQThreeRawF}{TBD}      % Raw Code F1 (LoRA)
+\newcommand{\RQThreeASTF}{TBD}      % AST-Seq F1 (LoRA)
+\newcommand{\RQThreeIRF}{TBD}       % IR-Seq F1 (LoRA)
+\newcommand{\RQThreePval}{TBD}      % Friedman p-value
+\newcommand{\RQThreeDeltaAST}{TBD}  % Delta F1: AST over Raw
+\newcommand{\RQThreeDeltaIR}{TBD}   % Delta F1: IR over Raw
+
+%% RQ3 cross-paradigm comparison
+\newcommand{\RQThreeLossAST}{TBD}   % AST delta degradation: FT -> LoRA
+\newcommand{\RQThreeLossIR}{TBD}    % IR delta degradation: FT -> LoRA
+
+%% RQ4: Traversal sensitivity
+\newcommand{\RQFourBFS}{TBD}        % BFS F1
+\newcommand{\RQFourDFS}{TBD}        % DFS Pre-order F1
+\newcommand{\RQFourPost}{TBD}       % DFS Post-order F1
+\newcommand{\RQFourRand}{TBD}       % Random order F1
+\newcommand{\RQFourPval}{TBD}       % Friedman p-value across traversals
+
+%% Tokenization statistics (supplementary)
+\newcommand{\VocabSize}{50,000}
+\newcommand{\OOvRaw}{0.30--1.38}        % OOV rate raw code (range across datasets)
+\newcommand{\OOvAST}{0.05--0.48}        % OOV rate AST tokens
+\newcommand{\OOvIR}{0.00}               % OOV rate IR tokens
+\newcommand{\FragAST}{1.61--1.89}       % Avg subwords per AST node
+\newcommand{\FragIR}{1.00}              % Avg subwords per IR instruction
+
+%% Dataset name macros
+\newcommand{\BCB}{Big\-Clone\-Bench}
+\newcommand{\OJC}{OJ\-Clone}
+\newcommand{\Dev}{Devign}
+
+\begin{document}
+
+\title{Revisiting Structured Code Representations: Serialization, Vocabulary, and Traversal Effects}
+
+\author*[1]{\fnm{Dawei} \sur{Yuan}}\email{yuandawei@gdust.edu.cn}
+\author[2]{\fnm{Guojun} \sur{Liang}}\email{guojun.liang@hh.se}
+\author[3]{\fnm{Bin} \sur{Liu}}\email{liubin@gdust.edu.cn}
+\author[1]{\fnm{Suping} \sur{Liu}}\email{liusuping@gdust.edu.cn}
+
+\affil*[1]{\orgdiv{School of Computer Science}, \orgname{Guangdong University of Science and Technology}, \orgaddress{\city{Dongguan} \postcode{523083}, \country{China}}}
+\affil[2]{\orgdiv{School of Information Technology}, \orgname{Halmstad University}, \orgaddress{\city{Halmstad} \postcode{30118}, \country{Sweden}}}
+\affil[3]{\orgdiv{College of Computer Science and Technology}, \orgname{Jilin University}, \orgaddress{\city{Changchun}, \country{China}}}
+
+\abstract{Structured code representations---abstract syntax trees, control-flow graphs, data-flow graphs, and intermediate code---have become a dominant paradigm in source code processing. The implicit premise is that structural representations capture deeper semantic properties that raw token sequences miss. Yet this premise rests on an uneasy foundation: nearly all structured representations are ultimately serialized into token sequences before being fed into neural models. This paper systematically examines whether such serialized structural representations genuinely provide benefits beyond raw source code tokens. We identify three under-examined dimensions---the \emph{serialization barrier} (graphs flattened to sequences lose topological information that raw code tokens already carry implicitly), the \emph{vocabulary gap} (pre-trained tokenizers fragment structural tokens into subwords, which is especially consequential under LoRA fine-tuning where embeddings are frozen), and \emph{traversal sensitivity} (the choice of BFS, DFS, or other traversal strategies affects the token order and may interact with positional encodings). We formalize these as four falsifiable hypotheses and present a comprehensive experimental framework spanning three tasks (clone detection, vulnerability detection, code classification), four representation schemes, three model paradigms (traditional neural networks, full fine-tuning, and LoRA), and multiple traversal strategies under controlled conditions. The framework is designed to isolate each effect and to quantify the genuine marginal contribution of structural information beyond vocabulary enrichment and arbitrary traversal choices.}
+
+\keywords{structured code representation, abstract syntax tree, control-flow graph, code clone detection, vocabulary gap, traversal strategy, pre-trained models, LoRA}
+
+\maketitle
+
+%% ===================================================================
+\section{Introduction}\label{sec:intro}
+
+The representation of source code for machine learning has evolved from treating programs as flat token sequences toward incorporating increasingly rich structural information. Early approaches operated on raw lexical tokens, analogous to natural language processing pipelines~\citep{allamanis2018survey}. Over the past decade, the field has progressively layered on structure: abstract syntax trees (ASTs) to capture syntactic nesting~\citep{baxter1998clone,jiang2007deckard}, control-flow graphs (CFGs) to encode execution paths~\citep{allamanis2018graphs}, data-flow graphs (DFGs) to track variable dependencies~\citep{guo2021graphcodebert}, program dependence graphs (PDGs) for combined control and data dependencies~\citep{ferrante1987pdg}, and intermediate representations (IRs) such as Java bytecode or LLVM IR to bridge source-level syntax and compiler-level semantics~\citep{yuan2023clone}.
+
+The motivation is intuitively appealing: source code is fundamentally structured, and that structure ought to matter for tasks that require understanding program semantics. A variable renaming should not change a program's meaning, but it changes every token. An AST abstracts away identifiers. A CFG reveals branching structure. An IR exposes operational semantics.
+
+Yet there is a tension at the heart of this paradigm that has received surprisingly little critical scrutiny. Almost without exception, structured representations are fed into neural models not as graphs but as \emph{token sequences}, obtained by traversing the graph according to some serialization strategy and emitting a token for each node. The resulting sequence is then tokenized by a subword tokenizer and processed by the same Transformer or recurrent architecture used for raw code. The implicit claim---that this pipeline, by virtue of its structured input, captures deeper code properties than raw tokens---is rarely questioned.
+
+We argue that this claim deserves systematic examination along three dimensions:
+
+\begin{enumerate}
+\item \textbf{The serialization barrier.} Converting a graph to a token sequence is lossy: edges, connectivity, and graph topology are flattened into a one-dimensional order. Meanwhile, raw source code \emph{already} carries rich structural cues---keywords (\texttt{if}, \texttt{for}, \texttt{while}), delimiters (\texttt{\{\}}), and statement ordering---that sequence models can exploit. If structured serialization merely reorders and relabels tokens without adding genuinely new information, then the observed performance gains of structured approaches may be attributable to their larger and more discriminative vocabularies rather than to any ``structural understanding.''
+
+\item \textbf{The vocabulary gap.} Pre-trained code models (CodeBERT, CodeT5) use subword tokenizers trained on source-code corpora~\citep{feng2020codebert,wang2021codet5}. When an AST node label such as \texttt{IfStatement} or an IR instruction mnemonic is tokenized, it is decomposed into subwords (e.g., \texttt{IfStatement} $\to$ [\texttt{If}, \texttt{Stat}, \texttt{ement}]). Under full fine-tuning, the model may learn to recompose these fragments into meaningful structural embeddings. Under parameter-efficient methods such as LoRA~\citep{hu2022lora}, however, the embedding layer is \emph{frozen}---the model cannot adapt its subword representations to structural semantics, and must disambiguate structurally distinct tokens purely from context.
+
+\item \textbf{Traversal sensitivity.} If structural serialization \emph{does} carry useful information, the traversal strategy (BFS, DFS pre-order, DFS post-order) determines \emph{which} structural signal reaches the model. Different traversals produce different token orders from the same graph. This creates a dilemma: if the traversal strategy significantly affects performance, then structural representations are traversal-dependent and unreliable. If different traversals produce indistinguishable results, then the model has effectively learned a bag-of-node-labels, and structural information is not being captured at all.
+\end{enumerate}
+
+The three dimensions are linked by a common thread: they all question whether the structural signal attributed to structured representations actually survives the serialization-then-tokenization pipeline, and whether observed performance gains are attributable to structural information rather than to confounds such as vocabulary enrichment or arbitrary traversal choices.
+
+\textbf{Why this matters now.} The rise of instruction-tuned decoder-only code LLMs---DeepSeek-Coder, Code Llama, StarCoder~2, Qwen-Coder---has intensified the use of structured code representations in entirely new contexts: as formats for intermediate reasoning steps (chain-of-thought via AST traces), as search keys in retrieval-augmented generation (embedding AST subgraphs for similar-code retrieval), and as evaluation scaffolds (structural diff-based reward signals in code generation benchmarks). All of these applications assume that serialized structural tokens convey information that raw code tokens do not. Yet the tokenization and fine-tuning regimes these LLMs inherit---BPE tokenizers trained predominantly on surface-level code corpora, instruction-tuning on natural-language--code pairs, and increasingly parameter-efficient adaptation (LoRA, Q-LoRA)---are precisely the configurations under which the serialization barrier, vocabulary gap, and traversal sensitivity are most acute. Establishing whether structured representations work, and under what conditions, is therefore not an academic exercise; it is a prerequisite for informed design of the next generation of code-oriented LLM tooling.
+
+Our prior work on code clone detection~\citep{yuan2023clone} exploited intermediate code-based graphs and achieved strong results on Java clone benchmarks. However, reflecting on that work, we found it difficult to attribute the gains cleanly to structural information versus the larger and more discriminative vocabulary introduced by IR tokens. This paper is a systematic attempt to disentangle these factors.
+
+\textbf{Contributions.} This paper makes the following contributions:
+
+\begin{enumerate}
+\item A \emph{motivating analysis} that exposes the three under-examined dimensions of structured code representations through concrete examples and quantitative argumentation (Section~\ref{sec:motive}).
+
+\item A set of \emph{four falsifiable research questions} (RQ1--RQ4) with corresponding hypotheses (H1--H4) that formalize the serialization barrier, the vocabulary gap under both full and parameter-efficient fine-tuning, and traversal sensitivity (Section~\ref{sec:rq}).
+
+\item A \emph{comprehensive experimental framework} with four sub-experiments, each designed to isolate a single dimension: controlled-vocabulary traditional NNs for RQ1, full fine-tuning of pre-trained models for RQ2, LoRA fine-tuning for RQ3, and multi-traversal ablation for RQ4 (Section~\ref{sec:expt}).
+
+\item Placeholder result tables with pre-registered statistical tests, enabling the study to be reproduced and extended (Section~\ref{sec:results}).
+
+\item A critical discussion of implications for the design and interpretation of future code representation learning methods (Section~\ref{sec:discussion}).
+\end{enumerate}
+
+%% ===================================================================
+\section{Background and Related Work}\label{sec:related}
+
+\subsection{Structured Code Representations}
+
+\textbf{Abstract Syntax Trees (ASTs).} An AST is a tree representation of source code's syntactic structure. Interior nodes are labeled by syntactic categories (e.g., \texttt{IfStatement}, \texttt{BinaryExpression}); leaf nodes represent identifiers and literals. ASTs have been used for clone detection~\citep{baxter1998clone,jiang2007deckard,koschke2006survey}, code search~\citep{gu2018deepcs}, and program repair~\citep{chen2019sequencer}. Tree-based models such as Tree-LSTM~\citep{tai2015treelstm} and code2vec~\citep{alon2019code2vec} operate directly on tree topology, but most recent work serializes the AST into a token sequence for standard Transformers~\citep{zhang2019astnn,wang2020detecting}.
+
+\textbf{Control-Flow Graphs (CFGs).} A CFG is a directed graph whose nodes are basic blocks and whose edges represent control transfers. Cyclomatic complexity~\citep{mccabe1976} is a classical summary metric. CFG features have been used for defect prediction~\citep{wang2016deepdefect} and code similarity~\citep{xu2017neural}.
+
+\textbf{Intermediate Representations (IRs).} Compiler IRs (Java bytecode, .NET CIL, LLVM IR) preserve operational semantics while abstracting language-specific syntax. Our prior work~\citep{yuan2023clone} used Java bytecode-based graphs for clone detection. Hellendoorn et al.~\citep{hellendoorn2020global} demonstrated that IR-level representations can capture global relational structure.
+
+\subsection{Pre-Trained Models for Code}
+
+CodeBERT~\citep{feng2020codebert}, CodeT5~\citep{wang2021codet5}, UniXcoder~\citep{guo2022unixcoder}, PLBART~\citep{ahmad2021plbart}, and CuBERT~\citep{kanade2020pre} are pre-trained Transformers for code. They share a critical property: their subword tokenizers (BPE or WordPiece) are trained on source-code corpora, meaning that tokens specific to structured representations (AST node labels, IR mnemonics) are systematically fragmented.
+
+\subsection{Parameter-Efficient Fine-Tuning}
+
+LoRA~\citep{hu2022lora} injects low-rank adapters into attention weights while freezing the base model and embedding layer. Adapters~\citep{houlsby2019adapter} and prefix tuning~\citep{li2021prefix} are alternative PEFT methods. In this work, LoRA serves as a stress test for the vocabulary gap: because embeddings are frozen, structurally distinct IR tokens that share subwords receive near-identical embedding vectors.
+
+\subsection{Code Clone Detection}
+
+Clone detection spans text-based (CCFinder~\citep{kamiya2002ccfinder}), token-based (SourcererCC~\citep{sajnani2016sourcerercc}), tree-based (DECKARD~\citep{jiang2007deckard}), graph-based~\citep{komondoor2001pdgclone}, and deep learning methods~\citep{white2016deep,wei2019cdlhd,li2017cclearner}. Our prior work~\citep{yuan2023clone} falls in the graph-based category. This paper re-examines the fundamental premise: whether structural information genuinely contributes beyond what can be learned from tokens.
+
+\subsection{Critical Perspectives on Code Models}
+
+Li et al.~\citep{li2023understand} showed that pre-trained models often solve SE tasks by exploiting superficial cues rather than deep understanding. Our work applies a similar critical lens to structured representations. Contrastive learning methods~\citep{jain2021contrastive} have shown that carefully designed token-level objectives can match or exceed structure-aware methods on some tasks.
+
+%% ===================================================================
+\section{Motivating Analysis}\label{sec:motive}
+
+Before formulating formal hypotheses, we present a concrete analysis of the three dimensions identified in Section~\ref{sec:intro}. These observations motivate the research questions in Section~\ref{sec:rq}.
+
+\subsection{The Serialization Is Not What It Seems}
+\label{sec:motive-serial}
+
+Consider the following deliberately simple Java method and its AST:
+
+\begin{verbatim}
+int max(int a, int b) {
+    if (a > b) return a;
+    else return b;
+}
+\end{verbatim}
+
+An AST serialized via DFS pre-order produces:
+\begin{center}
+\texttt{MethodDecl int max int a int b IfStmt BinaryExpr a > b Return a Return b}
+\end{center}
+
+A CFG serialization from the entry block yields:
+\begin{center}
+\texttt{ENTRY IF\_HEAD THEN\_BLOCK RETURN\_A ELSE\_BLOCK RETURN\_B EXIT}
+\end{center}
+
+Both sequences are fed into a neural model as token sequences. The model processes them with the same architecture it would use for raw code. The claim made by structured-representation methods is that these sequences carry richer structural information than the original:
+
+\begin{center}
+\texttt{int max ( int a , int b ) \{ if ( a > b ) return a ; else return b ; \}}
+\end{center}
+
+But does the raw code really lack structural information? The raw token sequence already contains:
+\begin{itemize}
+\item Keywords (\texttt{if}, \texttt{else}, \texttt{return}) that reveal the AST node types at those positions.
+\item Delimiters (\texttt{(}, \texttt{)}, \texttt{\{}, \texttt{\}}, \texttt{;}) that encode tree topology (block boundaries, expression grouping).
+\item Sequential ordering that mirrors the control flow: the \texttt{if} branch textually precedes the \texttt{else} branch, matching the CFG structure.
+\end{itemize}
+
+In fact, the AST and CFG are \emph{defined by deterministic rules} from the raw source code. Every piece of structural information in the AST or CFG is already implicit in the source text. The only thing that structured serialization adds is:
+
+\begin{enumerate}
+\item \textbf{A different vocabulary.} Instead of tokens like \texttt{if}, \texttt{return}, \texttt{>}, we get tokens like \texttt{IfStmt}, \texttt{Return}, \texttt{BinaryExpr}. These tokens are more abstract and less ambiguous---but they are not \emph{new information}, only a \emph{relabeling}.
+
+\item \textbf{A different token order.} The serialization strategy determines adjacency relations: in DFS, parent and child are contiguous; in BFS, siblings are contiguous. This ordering \emph{may} make certain structural relationships easier for the model to discover---but it also \emph{destroys} the implicit structural signals in the original code order (e.g., the \texttt{if-then-else} linear flow).
+\end{enumerate}
+
+The critical question, then, is not whether structured representations contain structural information (they do, by construction), but whether the information they provide is \emph{additional} to what a competent sequence model can already extract from raw code. If the answer is no, then reported performance gains are likely attributable to the larger and more discriminative vocabulary that structured serialization introduces, rather than to structural understanding.
+
+\textbf{The vocabulary confound.} Consider an AST vocabulary that distinguishes \texttt{IfStatement}, \texttt{ForStatement}, \texttt{WhileStatement}, \texttt{DoWhileStatement}, and \texttt{SwitchStatement}. In raw code, these correspond to five different keyword tokens (\texttt{if}, \texttt{for}, \texttt{while}, \texttt{do+while}, \texttt{switch}) which are \emph{already distinguishable}. The AST vocabulary adds finer distinctions (e.g., \texttt{ThenBlock}, \texttt{ElseBlock}, \texttt{Condition}) that raw code encodes through positional relationships rather than explicit labels. Whether these finer distinctions help depends on whether the downstream task requires that level of abstraction---not on whether ``structure'' is fundamentally better.
+
+\subsection{The Vocabulary Gap Is Underestimated}
+\label{sec:motive-vocab}
+
+Pre-trained code models use subword tokenization (BPE or WordPiece) fit to source-code corpora. Table~\ref{tab:bpe-examples} illustrates how structural tokens are decomposed by a typical BPE tokenizer trained on CodeSearchNet.
+
+\begin{table}[tb]
+\centering
+\caption{BPE subword decomposition examples under three representative tokenizers. Fragments shared across related tokens are \underline{underlined}; fragments that distinguish structurally distinct tokens in the code semantics sense are treated as \emph{key} fragments by the model.\label{tab:bpe-examples}}
+\begin{tabular}{lllll}
+\toprule
+Category & Original Token & CodeBERT/CodeT5 & Llama~3~(128K vocab) & DeepSeek-Coder~(100K) \\
+\midrule
+\multirow{4}{*}{AST Labels}
+  & \texttt{IfStatement}      & [\texttt{If},\texttt{Stat},\texttt{ement}] & [\texttt{IfStatement}] & [\texttt{IfStat},\texttt{ement}] \\
+  & \texttt{ForStatement}     & [\texttt{For},\texttt{Stat},\texttt{ement}] & [\texttt{ForStatement}] & [\texttt{ForStat},\texttt{ement}] \\
+  & \texttt{WhileStatement}   & [\texttt{While},\texttt{Stat},\texttt{ement}] & [\texttt{WhileStat},\texttt{ement}] & [\texttt{WhileStat},\texttt{ement}] \\
+  & \texttt{MethodDeclaration}& [\texttt{Method},\texttt{De},\texttt{clar},\texttt{ation}] & [\texttt{MethodDeclar},\texttt{ation}] & [\texttt{MethodDecl},\texttt{aration}] \\
+\midrule
+\multirow{3}{*}{IR Mnemonics}
+  & \texttt{invokevirtual}    & [\texttt{invoke},\texttt{virtual}] & [\texttt{invokevirtual}] & [\texttt{invokev},\texttt{irtual}] \\
+  & \texttt{aload\_0}         & [\texttt{al},\texttt{oad},\texttt{\_},\texttt{0}] & [\texttt{al}, \texttt{oad},\texttt{\_0}] & [\texttt{aload},\texttt{\_0}] \\
+  & \texttt{aload\_1}         & [\texttt{al},\texttt{oad},\texttt{\_},\texttt{1}] & [\texttt{al}, \texttt{oad},\texttt{\_1}] & [\texttt{aload},\texttt{\_1}] \\
+\midrule
+\multirow{2}{*}{LLVM IR}
+  & \texttt{\%1 = alloca i32} & [\texttt{\%1},\texttt{=},\texttt{all},\texttt{oca},\texttt{i32}] & [\texttt{\%1},\texttt{=},\texttt{alloca},\texttt{i32}] & [\texttt{\%1},\texttt{=},\texttt{allo},\texttt{ca},\texttt{i32}] \\
+  & \texttt{br i1 \%cond}     & [\texttt{br},\texttt{i1},\texttt{\%cond}] & [\texttt{br},\texttt{i1},\texttt{\%cond}] & [\texttt{br},\texttt{i1},\texttt{\%cond}] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Four observations follow, with the fourth stemming from the cross-tokenizer comparison in Table~\ref{tab:bpe-examples}:
+
+\textbf{Observation 1: AST labels are partially discriminable, but differently across tokenizers.} Under older tokenizers (CodeBERT/CodeT5, ~50K vocab), CamelCase AST labels like \texttt{IfStatement} decompose into three subwords, with the first subword carrying the distinguishing signal. Under Llama~3's larger vocabulary (128K), many whole AST labels remain atomic---the vocabulary is large enough to absorb them. Under DeepSeek-Coder (100K, code-aware), the behaviour is intermediate: labels are split into two fragments with an identifiable key prefix. This means that the vocabulary-gap argument is tokenizer-specific and is diminishing with larger, code-aware vocabularies.
+
+\textbf{Observation 2: IR mnemonics show the most divergence across tokenizers.} Tokens like \texttt{aload\_0} and \texttt{aload\_1} remain fragmented under all three tokenizers, but the fragmentation pattern differs: older tokenizers split into 4--5 subwords embedding the distinguishing operand index as an isolated token that carries no structural semantics; Llama~3 and DeepSeek-Coder merge the mnemonic stem with the underscore, leaving the operand suffix isolated. In all cases, the pre-trained embedding of a bare digit (\texttt{0}, \texttt{1}) does not encode ``local variable slot 0 vs.\ slot 1''---the model must learn this distinction from context.
+
+\textbf{Observation 3: The subword recomposition burden varies by both tokenizer and fine-tuning regime.} Under \emph{full fine-tuning}, all parameters (including the embedding matrix $E \in \mathbb{R}^{|V| \times d}$) are updated, allowing the model to adapt subword compositions to structural semantics. Under \emph{LoRA fine-tuning}, the embedding layer is frozen: $E$ retains its pre-trained values. The LoRA adapters, which operate only in higher layers, must disambiguate structurally distinct tokens that share subword embeddings \emph{purely from contextual attention}. This is analogous to reading a text where unfamiliar terms are replaced with randomized symbols and being asked to infer meaning without access to a dictionary---a fundamentally harder learning problem.
+
+\textbf{Observation 4: The vocabulary-gap hypothesis degrades as tokenizer vocabulary grows.} The Llama~3 tokenizer (128K vocabulary) preserves many structural tokens intact, suggesting that the vocabulary gap---at least for AST labels---may be closing in the post-2024 generation of code LLMs, whose tokenizers were fitted on substantially larger and more diverse corpora. However, IR mnemonics and LLVM IR fragments remain partially decomposed even under large vocabularies because they were not prominent in the pre-training data distribution. This points to an asymmetry: AST-Seq may fare better than IR-Seq under modern tokenizers, not because AST structure is more informative, but because AST labels happen to be closer to the surface-code distribution the tokenizer was trained on.
+
+\textbf{Quantitative estimate.} We measured subword fragmentation under the shared SPM BPE tokenizer across all three datasets and four representation schemes. Table~\ref{tab:frag} reports the actual statistics, aggregated per representation. The pattern is the opposite of what one might na\"ively expect: raw code suffers the \emph{highest} fragmentation (2.4--3.3 subwords per token) because the BPE merge tree was trained on a corpus where AST token types dominate (69\% of all tokens; see Table~\ref{tab:vocab-dist}), optimizing the vocabulary toward structural type names at the expense of general code identifiers. In contrast, IR and CFG exhibit near-zero fragmentation: their limited vocabularies ($\sim$20--40 distinct type labels) are perfectly covered by the 50K vocabulary, yielding 1.0 subwords/token and 0\% OOV. AST falls in between, with modest fragmentation (1.6--1.9 subwords/token) reflecting the overlap between its node-type vocabulary and the BPE merge tree. This asymmetry has a practical consequence: even under a ``shared vocabulary,'' the tokenizer treats different representations unequally, introducing a confound that the experimental design must acknowledge.
+
+\begin{table}[tb]
+\centering
+\caption{Actual subword fragmentation statistics under the shared SPM BPE tokenizer (50K vocabulary), aggregated across OJClone, Devign, and BCBench.}\label{tab:frag}
+\begin{tabular}{lcccc}
+\toprule
+Representation & OOV Rate (\%) & Subwords/Token & Avg.\ Seq.\ Len. & Trunc.\@512 (\%) \\
+\midrule
+Raw Source Code  & 0.30--1.38 & 2.41--3.34 & 191--508 & 1.2--26.8 \\
+AST Node Sequence& 0.05--0.48 & 1.61--1.89 & 596--1045 & 46.4--51.6 \\
+CFG Blk.\ Labels  & 0.00--0.00 & 1.11--1.69 & 15--23 & 0.0--0.3 \\
+IR Instruction Seq.& 0.00--0.00 & 1.00--1.00 & 29--90 & 0.1--1.7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A second concern is whether the SPM training corpus itself is balanced. Table~\ref{tab:vocab-dist} shows a severe skew: AST tokens constitute 69.1\% of the combined training corpus, compared to 16.6\% for raw code, 11.9\% for IR, and 2.3\% for CFG. This imbalance means the BPE merge tree is predominantly shaped by AST token co-occurrence patterns. More critically, the vocabulary utilization rates reveal that raw code uses 96.8\% of the 50K vocabulary (i.e., most of the tokenizer's capacity is spent covering diverse code identifiers), while CFG and IR use only 20 and 40 vocabulary entries respectively. Representations with near-zero vocabulary utilization are trivially tokenized at the atomic level, whereas raw code---despite being the baseline---bears a disproportionate subword fragmentation burden. This asymmetry violates the ideal of a ``fair'' shared-vocabulary comparison and should be considered when interpreting RQ1 results.
+
+\begin{table}[tb]
+\centering
+\caption{SPM BPE training corpus distribution and per-representation vocabulary utilization (50K vocabulary).}\label{tab:vocab-dist}
+\begin{tabular}{lrrr}
+\toprule
+Representation & Corpus Tokens & \% of Total & Vocab.\ Utilization (\%) \\
+\midrule
+Raw Source Code & 9,041,093 & 16.6\% & 96.8\% \\
+AST Node Sequence& 37,671,029 & 69.1\% & 80.8\% \\
+CFG Blk.\ Labels  & 1,261,327 & 2.3\% & 0.04\% \\
+IR Instruction Seq.& 6,503,891 & 11.9\% & 0.08\% \\
+\midrule
+\textbf{Total} & \textbf{54,477,340} & \textbf{100.0\%} & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Testing the independence hypothesis.} The above imbalance raises a natural question: would representation-specific tokenizers---each trained exclusively on its own representation---yield a fairer comparison? We train two independent 50K BPE tokenizers: \texttt{spm\_raw\_50k} (fitted on the 9M-token raw-code corpus) and \texttt{spm\_struct\_50k} (fitted on the 45.5M-token combined AST+CFG+IR corpus). Table~\ref{tab:indep-frag} reports the cross-application fragmentation rates. Two findings emerge. First, raw code fragments at essentially the same rate regardless of which tokenizer encodes it (2.40--3.59 subwords/token), suggesting that its diverse identifier vocabulary is inherently challenging for any 50K-capacity subword tokenizer. Second, structural representations remain near-atomic under their dedicated tokenizer (1.00--1.90) but degrade modestly when encoded by the raw-code tokenizer (1.65--2.17). The degradation is modest ($\sim$20\% for AST) because structural type labels are short, high-frequency tokens that the raw-code tokenizer's BPE merge tree partially merges regardless. The practical implication is that the fragmentation asymmetry between raw and structural representations is \emph{robust to tokenizer redesign}: the shared-vocabulary confound identified in Table~\ref{tab:vocab-dist} is not the primary driver of observed differences. We therefore retain the original shared tokenizer for RQ1 but, as a robustness check, add an independent-tokenizer ablation (RQ1b) to quantify the sensitivity of RQ1 conclusions to tokenizer design.
+
+\begin{table}[tb]
+\centering
+\caption{Cross-tokenizer fragmentation: subwords per token under three 50K BPE tokenizers (shared, raw-optimized, structural-optimized).}\label{tab:indep-frag}
+\begin{tabular}{lccc}
+\toprule
+Repr.\ & Shared SPM & Raw-SPM 50K & Struct-SPM 50K \\
+\midrule
+Raw Code (range) & 2.41--3.34 & 2.40--3.33 & 2.54--3.59 \\
+AST Node Seq.   & 1.61--1.90 & 1.93--2.17 & 1.61--1.90 \\
+CFG Blk.\ Labels & 1.11--1.69 & 1.68--2.15 & 1.11--1.69 \\
+IR Instr.\ Seq.  & 1.00--1.00 & 1.65--1.86 & 1.00--1.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The Traversal Dilemma}
+\label{sec:motive-trav}
+
+If serialized structural representations carry useful information beyond raw tokens, then the traversal strategy $\tau$---which projects the graph structure onto a one-dimensional sequence---determines \emph{which} structural signal reaches the model. This creates a dilemma captured in Table~\ref{tab:dilemma}:
+
+\begin{table}[tb]
+\centering
+\caption{The traversal dilemma: two possible outcomes, both problematic.}\label{tab:dilemma}
+\begin{tabular}{p{3.5cm}p{8cm}}
+\toprule
+Scenario & Implication \\
+\midrule
+\textbf{Scenario A:} BFS and DFS produce \emph{significantly different} results. &
+The choice of traversal strategy is a hidden hyperparameter that affects reported performance. Different research groups using different (often unspecified) traversal strategies may reach contradictory conclusions about the same structured representation. $\Rightarrow$ \textbf{Structural representations are not a canonical, reproducible feature encoding.} \\
+\addlinespace
+\textbf{Scenario B:} BFS and DFS produce \emph{indistinguishable} results. &
+The model has learned a representation that is insensitive to token order. For an attention-based architecture, this implies that the model relies primarily on the \emph{identity} of node labels (a bag-of-labels) rather than on their structural relationships. $\Rightarrow$ \textbf{Structural information is not being effectively captured.} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We introduce a \textbf{random traversal} as a critical ablation baseline. If random node ordering---which deliberately destroys all structural adjacency---produces performance comparable to BFS and DFS, it provides strong evidence that the model is not exploiting structural information. Conversely, if BFS and DFS both significantly outperform random, but differ from each other, then structural information \emph{is} being captured but \emph{depends on the traversal choice}.
+
+\textbf{Interaction with positional encoding.} The traversal dilemma interacts with the model's positional encoding (PE) scheme. Absolute sinusoidal PEs~\citep{vaswani2017attention} assign a unique vector to each position, meaning that the same AST node at position $i$ under BFS and position $j$ under DFS receives entirely different positional signals. Relative positional encodings~\citep{shaw2018relpos} model pairwise distances and are more robust to reordering. Learned PEs adapt to the training distribution's ordering patterns. This means that the traversal effect may be \emph{mediated} by the PE scheme: a traversal that produces no difference under relative PE may produce significant differences under absolute PE, or vice versa. This interaction has never been systematically studied in the context of code representations.
+
+%% ===================================================================
+\section{Research Questions and Hypotheses}\label{sec:rq}
+
+Based on the motivating analysis, we formulate four research questions and corresponding falsifiable hypotheses. Figure~\ref{fig:rq-overview} provides a schematic overview of how each RQ isolates a specific confound.
+
+\begin{figure}[tb]
+\centering
+\begin{tabular}{c|c|c|c}
+\toprule
+\textbf{RQ} & \textbf{Paradigm} & \textbf{Variable Isolated} & \textbf{Key Control} \\
+\midrule
+RQ1 & Traditional NN & Serialization barrier & Vocabulary size \\
+RQ2 & Full fine-tuning & Vocab gap (full FT) & Tokenizer (frozen) \\
+RQ3 & LoRA fine-tuning & Vocab gap (frozen emb.) & Embedding update \\
+RQ4 & All paradigms & Traversal strategy & Traversal order \\
+\bottomrule
+\end{tabular}
+\caption{Schematic overview of the four research questions.}\label{fig:rq-overview}
+\end{figure}
+
+\subsection{RQ1: The Serialization Barrier}
+
+\begin{description}
+\item[RQ1] \textit{Under traditional neural networks with vocabulary size controlled, do serialized structured representations (AST-Seq, CFG-Seq, IR-Seq) significantly outperform raw source code token sequences on downstream tasks?}
+\end{description}
+
+\textbf{Hypothesis H1 (Null):} When vocabulary size, model architecture, and training budget are held constant, there is no statistically significant difference in downstream task performance between raw code tokens and serialized structured representations.
+
+\textbf{Rationale.} Raw code tokens carry implicit structural information through keywords, delimiters, and statement ordering. Structured serializations relabel and reorder these tokens but do not introduce fundamentally new information beyond what a larger vocabulary provides. By controlling vocabulary size (fitting a shared tokenizer of fixed capacity on the combined corpus of all representation schemes), we eliminate vocabulary enrichment as a confound and isolate the effect of token content and order.
+
+\textbf{Prediction.} We predict H1 will hold ($p > 0.05$), implying that previously reported gains from structured representations in traditional NN settings are largely attributable to vocabulary enrichment rather than structural understanding.
+
+\subsection{RQ2: Vocabulary Gap Under Full Fine-Tuning}
+
+\begin{description}
+\item[RQ2] \textit{Under full fine-tuning of pre-trained models (CodeBERT, CodeT5), does the vocabulary gap between source-code-trained tokenizers and structured representation tokens reduce the effectiveness of structured representations compared to raw code?}
+\end{description}
+
+\textbf{Hypothesis H2:} The relative improvement of structured representations over raw code ($\Delta_{\text{struct}}$) is significantly smaller under pre-trained model fine-tuning than under traditional NNs with task-trained vocabularies, and this reduction is correlated with the subword fragmentation rate of the structural tokens.
+
+\textbf{Rationale.} Under full fine-tuning, the embedding layer $E$ is updated, allowing the model to partially adapt subword compositions to structural semantics (Section~\ref{sec:motive-vocab}). However, this adaptation must compete with the pre-trained embedding priors and requires sufficient training signal. For highly fragmented IR tokens, the adaptation may be incomplete, leading to a residual performance penalty relative to raw code.
+
+\textbf{Prediction.} We predict H2 will hold partially: AST-Seq (moderate fragmentation) may retain some advantage over raw code, while IR-Seq (heavy fragmentation) will show diminished or no advantage.
+
+\subsection{RQ3: Vocabulary Gap Under LoRA Fine-Tuning}
+
+\begin{description}
+\item[RQ3] \textit{Under LoRA fine-tuning, does the frozen embedding layer exacerbate the vocabulary gap, leading to a further reduction (or reversal) of the structured representation advantage?}
+\end{description}
+
+\textbf{Hypothesis H3:} Under LoRA fine-tuning, the relative improvement $\Delta_{\text{struct}}$ of structured representations is significantly smaller than under full fine-tuning. The degradation $\Delta_{\text{struct}}^{(\text{FT})} - \Delta_{\text{struct}}^{(\text{LoRA})}$ is larger for IR-Seq than for AST-Seq.
+
+\textbf{Rationale.} With frozen embeddings (Section~\ref{sec:motive-vocab}, Observation 3), the model cannot adapt subword compositions to structural semantics at all. Structurally distinct tokens that share subwords (e.g., \texttt{aload\_0} and \texttt{aload\_1}) receive near-identical embedding vectors. The LoRA adapters must disambiguate them purely from context, which is harder than the full fine-tuning case where embeddings can adapt.
+
+\textbf{Prediction.} We predict H3 will hold; IR-Seq may even underperform raw code under LoRA ($\Delta_{\text{IR}} < 0$).
+
+\subsection{RQ4: Traversal Sensitivity}
+
+\begin{description}
+\item[RQ4] \textit{Do different AST traversal strategies (BFS, DFS pre-order, DFS post-order) produce statistically significant differences in downstream task performance, controlling for all other factors?}
+\end{description}
+
+\textbf{Hypothesis H4:} There exist statistically significant performance differences across traversal strategies, and the optimal traversal is task-dependent.
+
+\textbf{Rationale.} Different traversals encode different structural adjacency patterns (Section~\ref{sec:motive-trav}). BFS groups syntactically parallel constructs, which may benefit clone detection (comparing sibling subtrees). DFS preserves parent-child contiguity, which may benefit tasks requiring hierarchical context. The random-order baseline tests whether any traversal order matters at all.
+
+\textbf{Prediction.} We predict H4 will hold: BFS and DFS will both outperform random, but will differ from each other in task-dependent ways. This would confirm that structural information \emph{is} captured, but is traversal-dependent.
+
+%% ===================================================================
+\section{Experimental Design}\label{sec:expt}
+
+We present a comprehensive experimental framework with four sub-experiments, each mapped to one RQ. The entire framework is specified in sufficient detail for independent replication.
+
+\subsection{Tasks and Datasets}
+
+We select three representative code understanding tasks spanning two programming languages:
+
+\begin{table}[tb]
+\centering
+\caption{Datasets used in the experimental framework.}\label{tab:datasets}
+\begin{tabular}{llcl}
+\toprule
+Dataset & Task & Language & Samples \\
+\midrule
+\BCB{}~\citep{svajlenko2014bigclonebench,svajlenko2018bigclonebench} &
+  Clone Detection & Java & $\sim$1.7M pairs \\
+\OJC{}~\citep{mou2016ojclone} &
+  Clone Detection & C/C++ & $\sim$50K pairs \\
+\Dev{}~\citep{zhou2019devign} &
+  Vulnerability Detection & C/C++ & $\sim$27K functions \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{BigCloneBench} is the largest curated clone detection benchmark, containing clone pairs across four types (Type-1 through Type-4). We use the filtered subset from HuggingFace CodeXGLUE~\citep{lu2021codexglue} (1.73M pairs, 8,063 unique functions). \textbf{OJClone} consists of POJ-104 programming competition submissions where all solutions to the same problem are clones; we generate 106K clone/non-clone pairs from 51,995 unique C functions. \textbf{Devign} provides function-level vulnerability labels; we use the \texttt{DetectVul/devign} HuggingFace distribution (27,318 C functions across 27,258 unique sources).
+
+\subsection{Representation Schemes}
+
+We define four representation schemes that serve as the independent variable:
+
+\begin{enumerate}
+\item \textbf{Raw Code (Baseline).} Source code after whitespace tokenization, preserving original lexical ordering. The resulting sequence is tokenized by the model's native tokenizer (RQ2--RQ4) or by the shared SPM tokenizer (RQ1). No comment removal or identifier normalization is applied.
+
+\item \textbf{AST-Seq.} The AST is parsed using tree-sitter~\citep{bruns2020treesitter} (language bindings: \texttt{tree-sitter-c}, \texttt{tree-sitter-cpp}, \texttt{tree-sitter-java}) and serialized into a token sequence using the specified traversal strategy. Each node is labeled by its type name (e.g., \texttt{if\_statement}) for internal nodes, or its original source text for leaf nodes. We provide two variants: \emph{with identifiers} (leaves retain original names) and \emph{identifier-abstracted} (identifiers replaced with \texttt{ID}, literals with \texttt{LIT}), to test whether gains come from structure or from identifiers carried within the structure.
+
+\item \textbf{CFG-Seq.} The control-flow skeleton is extracted through AST analysis using tree-sitter. Nodes corresponding to control-flow constructs (\texttt{if\_statement}, \texttt{while\_statement}, \texttt{for\_statement}, \texttt{switch\_statement}, \texttt{goto\_statement}, \texttt{break\_statement}, \texttt{continue\_statement}, \texttt{return\_statement}, \texttt{function\_definition}) are collected in traversal order and categorized into abstracted block types: \texttt{BRANCH} (if / switch), \texttt{LOOP} (while / do / for), \texttt{JUMP} (goto / break / continue), \texttt{RETURN}, \texttt{FUNC}, with \texttt{ENTRY} and \texttt{EXIT} delimiters. Edges are implicit in the serialization order.
+
+\item \textbf{IR-Seq.} A simplified instruction-level view is derived by traversing the AST and mapping statement-level node types to abbreviated operation mnemonics. For example, \texttt{expression\_statement} $\to$ \texttt{EXPR}, \texttt{declaration} $\to$ \texttt{DECL}, \texttt{return\_statement} $\to$ \texttt{RET}, \texttt{assignment\_expression} $\to$ \texttt{ASSIGN}, \texttt{call\_expression} $\to$ \texttt{CALL}, \texttt{binary\_expression} $\to$ \texttt{BINOP}. Each instruction is represented by its mnemonic and operand type descriptors, not literal values. This approach does \emph{not} require compilation and works uniformly across C, C++, and Java.
+\end{enumerate}
+
+\subsection{Preprocessing Pipeline}
+
+The end-to-end data preparation pipeline unfolds in four stages:
+
+\paragraph{Stage 1: Source acquisition.} All datasets are obtained from HuggingFace Hub. OJClone uses \texttt{google/code\_x\_glue\_cc\_clone\_detection\_poj104} (51,995 unique C files, 106K clone/non-clone pairs); BCBench uses \texttt{google/code\_x\_glue\_cc\_clone\_detection\_big\_clone\_bench} (1.73M pairs, 8,063 unique Java functions); Devign uses \texttt{DetectVul/devign} (27,318 C functions). Function text is deduplicated via MD5 hashing and stored as individual source files.
+
+\paragraph{Stage 2: Representation extraction.} Each source file is processed by four independent extraction scripts, producing an intermediate \texttt{full.jsonl} with one JSON line per source file containing the filename and the serialized sequence. AST extraction uses tree-sitter with language-specific grammars (\texttt{tree-sitter-c}, \texttt{tree-sitter-cpp}, \texttt{tree-sitter-java}). For RQ4 and the ablation experiment, additional variants are generated: ASTs with four traversal strategies (dfs\_pre, dfs\_post, bfs, random) and the identifier-abstracted variant (AST$-$ID).
+
+\paragraph{Stage 3: Split construction.} Each \texttt{full.jsonl} is cross-referenced with the task-specific ground-truth labels to produce train, validation, and test splits (8:1:1). For clone detection (OJClone, BCBench), each split entry is a pair $\langle\text{code\_a}, \text{code\_b}, \text{label}\rangle$. For vulnerability detection (Devign), each entry is $\langle\text{code}, \text{label}\rangle$. The same split indices are used across all four representation schemes for paired comparison.
+
+\paragraph{Stage 4: Tokenizer training (RQ1 only).} All \texttt{full.jsonl} files (12 files: 3 datasets $\times$ 4 representations) are concatenated into a combined corpus of 54.5M tokens. A SentencePiece BPE tokenizer (50K vocabulary, identity normalization) is trained on this corpus, producing \texttt{spm\_shared\_50k.model}. As discussed above (Tables~\ref{tab:frag} and~\ref{tab:vocab-dist}), the severe corpus imbalance (AST: 69\%, Raw: 17\%, IR: 12\%, CFG: 2\%) introduces a confound that the empirical evaluation must control for.
+
+\subsection{Model Architectures}
+
+We evaluate across three model paradigms, summarized in Table~\ref{tab:models}. For RQ4 (traversal sensitivity), we additionally employ a three-tier progression from no pre-training to natural language pre-training to code-specific pre-training, to test whether traversal effects are mediated by pre-training domain knowledge.
+
+\begin{table}[tb]
+\centering
+\caption{Model families evaluated.}\label{tab:models}
+\begin{tabular}{llcc}
+\toprule
+Paradigm & Models & Trainable Params & Embedding \\
+\midrule
+Traditional NN       & BiLSTM+Attention~\citep{luong2015attn}, TextCNN~\citep{kim2014cnn} & All ($\sim$5--10M) & Task-trained \\
+Pre-trained (Full FT)& CodeBERT~\citep{feng2020codebert}, CodeT5~\citep{wang2021codet5} & All & Updated \\
+Pre-trained (LoRA)   & CodeBERT + LoRA, CodeT5 + LoRA ($r = 16$)~\citep{hu2022lora} & $<1\%$ & Frozen \\
+\midrule
+\multicolumn{4}{l}{\textit{RQ4 traversal models (three-tier progression)}} \\
+No pre-training    & BiLSTM+Attention (shared with RQ1) & $\sim$5M & Task-trained \\
+NL pre-training    & BERT-base-uncased~\citep{devlin2019bert} & 110M & Updated \\
+Code pre-training  & UniXcoder-base~\citep{guo2022unixcoder} & 125M & Updated \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sub-Experiment 1: RQ1 --- Serialization Barrier}
+
+\textbf{Objective.} Test H1 by comparing raw code against structured representations under traditional NNs with controlled vocabulary size.
+
+\textbf{Design.} RQ1 is split into two sub-experiments:
+
+\textbf{RQ1a (Shared vocabulary).} $2 \text{ (models)} \times 4 \text{ (representations)} \times 3 \text{ (datasets)} \times 5 \text{ (seeds)} = 120$ conditions. All representations are encoded through the shared SPM BPE tokenizer (50K vocab.) trained on the combined corpus. This is the primary test of H1.
+
+\textbf{RQ1b (Independent tokenizers, robustness check).} $2 \text{ (models)} \times 2 \text{ (tokenizer regimes)} \times 3 \text{ (datasets)} \times 1 \text{ (seed)} = 12$ conditions on Devign only (the most balanced dataset by task type). In the \emph{matched} regime, each representation uses its own dedicated tokenizer: raw code $\to$ \texttt{spm\_raw\_50k}, structural representations $\to$ \texttt{spm\_struct\_50k}. In the \emph{crossed} regime, the tokenizers are swapped. The delta between matched and crossed regimes quantifies the sensitivity of RQ1a conclusions to tokenizer design. If $\Delta$ shifts by $>0.02$ F1, the shared-vocabulary confound is non-negligible and additional representation-specific tokenizer analyses are warranted.
+
+\textbf{Data split.} All datasets are split into training (80\%), validation (10\%), and test (10\%) sets. The validation set is used for early stopping and hyperparameter selection; the test set is held out for final evaluation only.
+
+\textbf{Models:} BiLSTM+Attention (2-layer BiLSTM, 256-dim hidden, dot-product attention), TextCNN (filter sizes 2,3,4,5, 128 filters each).
+
+\textbf{Training:} Adam optimizer, learning rate selected from $\{1\times 10^{-4}, 5\times 10^{-4}, 1\times 10^{-3}\}$ via grid search on seed 42 only; the best configuration is then applied to the remaining 4 seeds. Batch size 32, 50 epochs with early stopping (patience 5 on validation F1). 5 random seeds (42, 123, 456, 789, 1024).
+
+\textbf{Metrics:} F1-score is the primary metric for all tasks. Precision and recall are reported as supplementary diagnostics to reveal whether performance changes are driven by shifts in model conservatism (P$\uparrow$R$\downarrow$) or permissiveness (P$\downarrow$R$\uparrow$), which may compensate in F1 without surfacing in the aggregate. Relative improvement is defined as $\Delta = (F1_{\text{struct}} - F1_{\text{raw}}) / F1_{\text{raw}}$ where F1 values are macro-averaged across test-set instances.
+
+\textbf{Statistical test:} Friedman test across the four representation schemes, with seed as the blocking factor (5 blocks $\times$ 4 representations). If Friedman yields $p < 0.05$, Nemenyi post-hoc test identifies which representation pairs differ significantly. Cohen's $d$ effect size for raw vs.\ each structured representation, with conventional thresholds: $|d| < 0.2$ trivial, $0.2$--$0.5$ small, $0.5$--$0.8$ medium, $>0.8$ large. The central test is whether any structured representation yields an effect size exceeding small thresholds after vocabulary control; $p > 0.05$ on Friedman supports H1.
+
+\textbf{Task architecture.} Clone detection (BCB, OJClone) and vulnerability detection (Devign) require different input structures. For clone detection (pair classification), we adopt a Siamese architecture: the same encoder (with tied weights) independently encodes code\_a and code\_b; their pooled representations are concatenated and passed through a two-layer MLP classifier. For vulnerability detection (single classification), the same encoder processes a single code input and feeds its pooled representation directly to a task-specific MLP classification head. The encoder weights are shared across tasks, ensuring that the learned representations are task-agnostic and comparable across datasets. This Siamese design applies uniformly to all models in all sub-experiments.
+
+\textbf{Vocabulary coverage analysis (pre-experiment).} Prior to training, we compute the vocabulary coverage of the shared 50K-token sentencepiece tokenizer on each representation scheme (see Table~\ref{tab:frag}). All schemes achieve $>$98\% coverage for their in-vocabulary token types, though the \emph{vocabulary utilization} differs dramatically: raw code uses 96.8\% of the 50K vocabulary (distributed across diverse code identifiers), while CFG and IR use $\ll 1\%$ (only 20--40 type labels). Coverage differences are within 2 percentage points across all schemes, so the pre-registered character-level embedding robustness check is not triggered. However, coverage alone is insufficient: the \emph{fragmentation rate}---subwords per token---differs by a factor of 3.3$\times$ between raw code and IR, and the \emph{truncation rate} at 512 tokens reaches 51.6\% for AST sequences, both of which are substantive confounds that cannot be captured by vocabulary coverage alone.
+
+\textbf{Sequence length confound analysis.} Structured serializations are systematically longer than raw code (Table~\ref{tab:frag}), and truncation at 512 tokens may disproportionately discard information from longer sequences. We address this confound in three ways: (1) we report the truncation rate (proportion of samples exceeding 512 tokens) per representation per dataset; (2) we perform a stratified analysis by original code length (short/medium/long terciles), computing F1 within each stratum at zero additional training cost; (3) we conduct a sensitivity analysis on BCB with BiLSTM (3 truncation lengths $\times$ 4 representations $\times$ 1 seed = 12 additional conditions). If structured representations gain relative advantage under longer truncation limits, the truncation confound is confirmed and discussed.
+
+\begin{table}[tb]
+\centering
+\caption{RQ1 Expected Results: F1-scores under controlled vocabulary ($\pm$ std).}\label{tab:rq1}
+\begin{tabular}{lccc}
+\toprule
+Representation & \BCB{} F1 & \OJC{} F1 & \Dev{} F1 \\
+\midrule
+Raw Code  & \RQOneRawF{} & \RQOneRawF{} & \RQOneRawF{} \\
+AST-Seq   & \RQOneASTF{} & \RQOneASTF{} & \RQOneASTF{} \\
+CFG-Seq   & \RQOneCFGF{} & \RQOneCFGF{} & \RQOneCFGF{} \\
+IR-Seq    & \RQOneIRF{}  & \RQOneIRF{}  & \RQOneIRF{} \\
+\midrule
+\multicolumn{4}{l}{Friedman $p$: \RQOnePval{}} \\
+\multicolumn{4}{l}{Cohen's $d$ (AST vs.\ Raw): \RQOneEffAST{} \quad (IR vs.\ Raw): \RQOneEffIR{}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sub-Experiment 2: RQ2 --- Vocabulary Gap Under Full Fine-Tuning}
+
+\textbf{Objective.} Test H2 by comparing the relative gain of structured representations under pre-trained model full fine-tuning versus task-trained traditional NNs.
+
+\textbf{Design.} $2 \text{ (models)} \times 3 \text{ (representations: raw, AST, IR)} \times 3 \text{ (datasets)} \times 5 \text{ (seeds)} = 90$ conditions. We focus on Raw Code, AST-Seq, and IR-Seq as the two extremes of the fragmentation spectrum. Each model uses its \emph{native} tokenizer (BPE or WordPiece) as supplied with the pre-trained checkpoint; no vocabulary manipulation is performed, since the vocabulary gap itself is the object of study.
+
+\textbf{Data split.} Same 8:1:1 split as RQ1. The division is applied identically across representation schemes to ensure that performance comparisons are not confounded by different data subsets.
+
+\textbf{Training:} AdamW, learning rate selected from $\{1\times 10^{-5}, 3\times 10^{-5}, 5\times 10^{-5}\}$ and batch size selected from $\{16, 32\}$ via grid search on seed 42 only. The best (lr, batch) pair is applied to the remaining 4 seeds. Max 10 epochs, linear warmup (10\% of steps). 5 random seeds.
+
+\textbf{Analysis:} Compute $\Delta_{\text{AST}} = (F1_{\text{AST}} - F1_{\text{Raw}}) / F1_{\text{Raw}}$ and $\Delta_{\text{IR}}$ analogously for each model. $\Delta > 0$ indicates that the structured representation outperforms Raw Code under the model's native tokenizer. The critical comparison is \emph{between RQ1 and RQ2}: if $\Delta_{\text{RQ2}} < \Delta_{\text{RQ1}}$ for equivalent representations, the pre-trained tokenizer's subword fragmentation is attenuating the structured-representation advantage. Report Pearson $r$ between the subword fragmentation rate (mean subwords per token, Table~\ref{tab:frag}) and $\Delta$ across all (model, representation, dataset) conditions, testing the monotonicity hypothesis: heavier fragmentation $\rightarrow$ smaller gain.
+
+\begin{table}[tb]
+\centering
+\caption{RQ2 Expected Results: F1-scores under full fine-tuning ($\pm$ std).}\label{tab:rq2}
+\begin{tabular}{lcc}
+\toprule
+Representation & CodeBERT & CodeT5 \\
+\midrule
+Raw Code  & \RQTwoRawF{} & \RQTwoRawF{} \\
+AST-Seq   & \RQTwoASTF{} & \RQTwoASTF{} \\
+IR-Seq    & \RQTwoIRF{}  & \RQTwoIRF{} \\
+\midrule
+\multicolumn{3}{l}{Friedman $p$: \RQTwoPval{}} \\
+\multicolumn{3}{l}{$\Delta_{\text{AST}}$: \RQTwoDeltaAST{} \quad $\Delta_{\text{IR}}$: \RQTwoDeltaIR{}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sub-Experiment 3: RQ3 --- LoRA Vocabulary Gap}
+
+\textbf{Objective.} Test H3 by comparing the relative gain of structured representations under LoRA fine-tuning versus full fine-tuning.
+
+\textbf{Design.} $2 \text{ (models)} \times 3 \text{ (representations: raw, AST, IR)} \times 3 \text{ (datasets)} \times 5 \text{ (seeds)} = 90$ conditions. LoRA adapters with rank $r = 16$, $\alpha = 32$, dropout $0.1$ are injected into the query ($Q$) and value ($V$) projection matrices of each self-attention layer. For CodeT5 (encoder-decoder), adapters are injected into both the encoder and decoder self-attention layers, but not into cross-attention. The entire base model, \emph{including the embedding layer}, is frozen. Only the LoRA adapters and the task-specific classification head receive gradient updates. The classification head is initialized with $\mathcal{N}(0, 0.02)$ to facilitate stable training alongside frozen embeddings.
+
+\textbf{Data split and training.} Same 8:1:1 split as RQ2. Learning rate is selected from $\{5\times 10^{-6}, 1\times 10^{-5}, 3\times 10^{-5}, 5\times 10^{-5}\}$ (extended lower bound to stabilize training with frozen embeddings). Batch size selected from $\{16, 32\}$ (CodeT5 may use batch size 8 if OOM occurs on 24\,GB VRAM). Linear warmup for 20\% of steps (extended from RQ2's 10\% for additional stability). Grid search on seed 42 only; best configuration fixed for remaining seeds.
+
+\textbf{Analysis:} Compute $\Delta_{\text{AST}}^{(\text{LoRA})}$ and $\Delta_{\text{IR}}^{(\text{LoRA})}$ using the same formula as RQ2. The primary quantity of interest is the \emph{degradation} $\delta = \Delta^{(\text{FT})} - \Delta^{(\text{LoRA})}$, where $\delta > 0$ indicates that freezing embeddings erodes the structured-representation advantage. A paired $t$-test (5 seed pairs per condition) tests whether the degradation is statistically significant. A particularly decisive outcome is $\Delta_{\text{IR}}^{(\text{LoRA})} < 0$: IR-Seq underperforming Raw Code under LoRA, confirming that frozen embeddings turn structurally rich tokens into compositional noise. We further test whether $\delta_{\text{IR}} > \delta_{\text{AST}}$ (paired test across conditions), which would confirm that heavier fragmentation amplifies the LoRA penalty.
+
+\begin{table}[tb]
+\centering
+\caption{RQ3 Expected Results: F1-scores under LoRA ($r=16$, $\pm$ std).}\label{tab:rq3}
+\begin{tabular}{lcc}
+\toprule
+Representation & CodeBERT-LoRA & CodeT5-LoRA \\
+\midrule
+Raw Code  & \RQThreeRawF{} & \RQThreeRawF{} \\
+AST-Seq   & \RQThreeASTF{} & \RQThreeASTF{} \\
+IR-Seq    & \RQThreeIRF{}  & \RQThreeIRF{} \\
+\midrule
+\multicolumn{3}{l}{Friedman $p$: \RQThreePval{}} \\
+\multicolumn{3}{l}{$\Delta_{\text{AST}}^{(\text{LoRA})}$: \RQThreeDeltaAST{} \quad $\Delta_{\text{IR}}^{(\text{LoRA})}$: \RQThreeDeltaIR{}} \\
+\multicolumn{3}{l}{$\Delta$ degradation vs.\ FT: AST \RQThreeLossAST{} \quad IR \RQThreeLossIR{}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sub-Experiment 4: RQ4 --- Traversal Sensitivity}
+
+\textbf{Objective.} Test H4 by comparing four traversal strategies on the same AST across a three-tier model progression.
+
+\textbf{Design.} $3 \text{ (models)} \times 4 \text{ (traversals)} \times 3 \text{ (datasets)} \times 5 \text{ (seeds)} = 180$ conditions. All conditions use the same AST, generated once per code sample. The three models form a progressive hierarchy in pre-training domain knowledge:
+
+\begin{itemize}
+\item \textbf{BiLSTM+Attention (no pre-training).} A purely sequential model with no prior exposure to any sequential structure beyond the training data. Tests whether traversal effects arise from basic sequential learning alone.
+\item \textbf{BERT-base-uncased~\citep{devlin2019bert} (NL pre-training).} A Transformer pre-trained on natural language corpora (BooksCorpus, English Wikipedia). Tests whether general-purpose positional and attention priors acquired from natural language transfer to code traversal patterns.
+\item \textbf{UniXcoder-base~\citep{guo2022unixcoder} (code pre-training).} An encoder-only Transformer pre-trained on source code with cross-modal contrastive learning objectives. Tests whether code-specific pre-training induces traversal-invariant representations, or conversely, whether traversal effects \emph{persist} despite code-aware pre-training.
+\end{itemize}
+
+The progression answers a secondary but critical question: does pre-training domain knowledge mitigate traversal sensitivity? If BiLSTM shows large traversal effects, BERT moderate effects, and UniXcoder negligible effects, this implies that large-scale code pre-training is sufficient to learn traversal-invariant representations from serialized but re-ordered structures. If all three models show significant traversal effects, the phenomenon is fundamental to serialized structural representations regardless of pre-training.
+
+\textbf{Traversal strategies:}
+\begin{itemize}
+\item \textbf{BFS:} Breadth-first, level by level (siblings adjacent).
+\item \textbf{DFS Pre-order:} Node emitted before its children (equivalent to the default \texttt{ast\_seq} representation used in RQ1--RQ3).
+\item \textbf{DFS Post-order:} Children emitted before their parent.
+\item \textbf{Random:} Uniform random permutation of node labels (ablation control).
+\end{itemize}
+
+\textbf{Representation generation.} All four traversal variants are produced from the same tree-sitter AST via the traversal parameter of \texttt{extract\_ast.py} (\texttt{--traversal bfs}, \texttt{dfs\_pre}, \texttt{dfs\_post}, \texttt{random}). The pre-order variant reuses the default AST sequences already generated for RQ1--RQ3; the remaining three are generated additionally and identically split (8:1:1) using the existing labels.
+
+\textbf{Data split and training.} Same 8:1:1 split across all datasets. BiLSTM follows the RQ1 training protocol (Adam, 50 epochs, lr searched on seed 42). BERT and UniXcoder follow the RQ2 protocol (AdamW, 10 epochs, lr and batch size searched on seed 42).
+
+\textbf{Positional encoding analysis (supplementary).} For BERT and UniXcoder only, we conduct a limited positional encoding ablation to probe whether traversal effects are mediated by PE choice. Tested configurations: absolute sinusoidal PE, relative PE~\citep{shaw2018relpos}, and no PE. This ablation is restricted to seed 42, BFS and Random traversals, on BCB only (12 conditions), serving as a diagnostic rather than a full-factor experiment.
+
+\textbf{Analysis:} Friedman test across the four traversals per model, with seed as the blocking factor. The key adjudication follows from the structured-traversal vs.\ Random contrast: if all three structured traversals (BFS, DFS-pre, DFS-post) significantly outperform Random, structural topology information is confirmed to be captured. If Random is statistically indistinguishable from one or more structured traversals, the model has not exploited traversal-sensitive structure---a bag-of-node-labels interpretation. Nemenyi post-hoc identifies which traversal pairs differ. We additionally test the model-tier $\times$ traversal interaction (two-way Friedman aligned ranks test) to determine whether pre-training domain knowledge moderates traversal sensitivity. To avoid conflating F1-compensating shifts, we inspect whether any F1-equivalence across traversals masks opposing P and R changes.
+
+\begin{table}[tb]
+\centering
+\caption{RQ4 Expected Results: F1-scores by traversal strategy and model for AST-Seq ($\pm$ std).}\label{tab:rq4}
+\begin{tabular}{lccc}
+\toprule
+Traversal & BiLSTM & BERT-base & UniXcoder \\
+\midrule
+\multicolumn{4}{c}{\textit{BigCloneBench (Clone Detection)}} \\
+BFS            & \RQFourBFS{}  & \RQFourBFS{}  & \RQFourBFS{} \\
+DFS Pre-order  & \RQFourDFS{}  & \RQFourDFS{}  & \RQFourDFS{} \\
+DFS Post-order & \RQFourPost{} & \RQFourPost{} & \RQFourPost{} \\
+Random         & \RQFourRand{} & \RQFourRand{} & \RQFourRand{} \\
+\midrule
+\multicolumn{4}{c}{\textit{OJClone (Clone Detection)}} \\
+BFS            & \RQFourBFS{}  & \RQFourBFS{}  & \RQFourBFS{} \\
+DFS Pre-order  & \RQFourDFS{}  & \RQFourDFS{}  & \RQFourDFS{} \\
+DFS Post-order & \RQFourPost{} & \RQFourPost{} & \RQFourPost{} \\
+Random         & \RQFourRand{} & \RQFourRand{} & \RQFourRand{} \\
+\midrule
+\multicolumn{4}{c}{\textit{Devign (Vulnerability Detection)}} \\
+BFS            & \RQFourBFS{}  & \RQFourBFS{}  & \RQFourBFS{} \\
+DFS Pre-order  & \RQFourDFS{}  & \RQFourDFS{}  & \RQFourDFS{} \\
+DFS Post-order & \RQFourPost{} & \RQFourPost{} & \RQFourPost{} \\
+Random         & \RQFourRand{} & \RQFourRand{} & \RQFourRand{} \\
+\midrule
+\multicolumn{4}{l}{Friedman $p$: \RQFourPval{}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sub-Experiment 5: Identifier Ablation}
+
+\textbf{Objective.} Determine whether AST-Seq performance gains are attributable to structural topology (node types and their relationships) or to the original identifier names retained in leaf nodes.
+
+\textbf{Design.} $3 \text{ (models)} \times 2 \text{ (AST variants)} \times 3 \text{ (datasets)} \times 5 \text{ (seeds)} = 90$ conditions. We compare two AST serialization variants under a fixed DFS pre-order traversal:
+
+\begin{itemize}
+\item \textbf{AST+ID:} Standard AST-Seq with leaf nodes retaining original identifier names and literal values (equivalent to the default \texttt{ast\_seq} representation used in RQ1--RQ3).
+\item \textbf{AST$-$ID:} Identifier-abstracted AST-Seq where all identifier tokens are replaced with a generic \texttt{ID} placeholder and all literal values are replaced with \texttt{LIT}. Node type labels are preserved unchanged. Generated via \texttt{extract\_ast.py --identifier\_mode abstract}.
+\end{itemize}
+
+The difference $\text{F1}(\text{AST+ID}) - \text{F1}(\text{AST-ID})$ isolates the contribution of identifier information. The difference $\text{F1}(\text{AST-ID}) - \text{F1}(\text{Raw Code})$ isolates the pure contribution of structural topology, since identifiers have been abstracted away in both representations.
+
+\textbf{Models.} The same three-tier progression as RQ4: BiLSTM+Attention, BERT-base-uncased, and UniXcoder-base. This allows us to test whether different models rely on identifiers versus structure to different degrees.
+
+\textbf{Data split and training.} Same 8:1:1 split. BiLSTM follows RQ1 protocol; BERT and UniXcoder follow RQ2 protocol.
+
+\textbf{Analysis.} The primary derived metric is $\delta_{\text{ID}} = \text{F1}(\text{AST+ID}) - \text{F1}(\text{AST-ID})$, measuring the marginal contribution of preserved identifier names. Paired $t$-test (5 seeds) per model per dataset tests whether $\delta_{\text{ID}} > 0$ significantly. We further compute the \emph{identifier contribution ratio} $\rho = \delta_{\text{ID}} \,/\, (\text{F1}(\text{AST+ID}) - \text{F1}(\text{Raw Code}))$, where the denominator is taken from RQ1--RQ3 as the total AST advantage. A $\rho$ exceeding 0.8 indicates that AST gains are predominantly driven by identifier memorization rather than structural topology learning. Interaction analysis (two-way ANOVA: model tier $\times$ identifier presence) reveals whether stronger pre-trained models rely \emph{less} on identifiers (abstracting toward structure) or \emph{more} (exploiting richer token priors for named entities).
+
+\subsection{Common Protocol}
+
+All sub-experiments share the following:
+\begin{itemize}
+\item \textbf{Data split:} All datasets use a fixed 8:1:1 (train/validation/test) split, stratified by label where applicable. The same split is used across all representation schemes for a given dataset to ensure fair comparison.
+\item \textbf{Hyperparameter search:} For all sub-experiments, hyperparameter tuning (learning rate, batch size) is performed via grid search on a single seed (42) using the validation set. The best configuration is then fixed and applied to the remaining 4 seeds (123, 456, 789, 1024). This constrains computational cost while preserving the statistical rigor of multi-seed evaluation.
+\item \textbf{Tokenizer policy:}
+  \begin{itemize}
+  \item \textbf{RQ1 (traditional NNs):} A shared sentencepiece BPE tokenizer~\citep{kudo2018sentencepiece} with vocabulary size 50,000, fitted on the combined corpus of all four representation schemes across all three datasets (54.5M tokens total). The BPE model uses identity normalization (no Unicode charmap dependency) and reserves four user-defined symbols: \texttt{ID}, \texttt{LIT}, \texttt{ENTRY}, \texttt{EXIT}. Table~\ref{tab:vocab-dist} reports the corpus token distribution and per-representation vocabulary utilization---both critical for assessing whether the ``shared vocabulary'' indeed provides a fair comparison baseline.
+  \item \textbf{RQ2/RQ3 (pre-trained models):} Each model retains its native pre-trained tokenizer (BPE or WordPiece). No vocabulary adaptation or tokenizer replacement is performed, since the vocabulary gap is the object of study.
+  \item \textbf{RQ4/Identifier ablation:} BiLSTM uses the shared sentencepiece tokenizer from RQ1; BERT and UniXcoder use their respective native tokenizers.
+  \end{itemize}
+\item \textbf{Task architecture:} Clone detection tasks (BCB, OJClone) use a Siamese encoder design (shared weights, concatenated representations, MLP classifier). Vulnerability detection (Devign) uses single-stream classification with the same encoder backbone. All models across all sub-experiments follow this design to ensure comparability.
+\item \textbf{Statistical reporting:} Mean and standard deviation over 5 random seeds. F1 is the primary metric; precision and recall are reported as diagnostics to detect F1-equivalence that masks opposing P/R shifts. Friedman test with seed as the blocking factor for multi-condition comparisons (RQ1: 4 representations; RQ4: 4 traversals); Nemenyi post-hoc follows only when Friedman $p < 0.05$. Paired $t$-tests with Bonferroni correction for pairwise comparisons (RQ3 FT vs.\ LoRA $\Delta$ values; identifier ablation AST+ID vs.\ AST$-$ID). Effect sizes reported as Cohen's $d$. Cross-experiment analyses include: Pearson $r$ (fragmentation rate vs.\ $\Delta$), two-way Friedman aligned ranks (model tier $\times$ traversal in RQ4), and two-way ANOVA (model tier $\times$ identifier presence in ablation).
+\item \textbf{Implementation:} All experiments implemented in PyTorch with HuggingFace Transformers for pre-trained models and the PEFT library for LoRA.
+\item \textbf{Reproducibility:} Fixed random seeds (42, 123, 456, 789, 1024). Environment recorded via conda-lock. Code and configuration files will be released upon acceptance.
+\item \textbf{Sequence length:} Truncated to 512 tokens; length distributions reported per representation scheme.
+\item \textbf{Device:} All experiments are designed to run on a single consumer-grade GPU (24\,GB VRAM). Full fine-tuning and LoRA experiments use mixed-precision training (fp16).
+\end{itemize}
+
+%% ===================================================================
+\section{Results}\label{sec:results}
+
+\textit{All values in this section are placeholders (``TBD''). The experimental framework is specified such that these tables can be populated directly from experimental logs. The statistical tests are pre-registered in Section~\ref{sec:expt}.}
+
+\subsection{RQ1: Serialization Barrier}
+
+Table~\ref{tab:rq1} will report F1-scores for traditional NNs with controlled vocabulary. Under H1, we expect no significant difference across representation schemes (Friedman $p > 0.05$). If a structured scheme significantly outperforms raw code, we report the effect size to assess practical significance and investigate whether the advantage persists after further vocabulary-size sensitivity analysis.
+
+\subsection{RQ2: Full Fine-Tuning Vocabulary Gap}
+
+Table~\ref{tab:rq2} will report F1-scores under full fine-tuning. Under H2, we expect $\Delta_{\text{struct}}$ to be smaller than in RQ1, and $\Delta_{\text{IR}}$ to be smaller than $\Delta_{\text{AST}}$, reflecting the fragmentation hierarchy. CodeT5, being an encoder-decoder architecture, will be analyzed separately from CodeBERT to test whether architecture choice moderates the vocabulary gap effect.
+
+\subsection{RQ3: LoRA Vocabulary Gap}
+
+Table~\ref{tab:rq3} will report F1-scores under LoRA. Under H3, we expect a significant degradation in $\Delta_{\text{struct}}$ compared to full FT (positive $\delta$), with IR-Seq potentially underperforming raw code ($\Delta_{\text{IR}}^{(\text{LoRA})} < 0$). We further expect $\delta_{\text{IR}} > \delta_{\text{AST}}$, consistent with heavier fragmentation amplifying the LoRA penalty.
+
+\subsection{RQ4: Traversal Sensitivity}
+
+Table~\ref{tab:rq4} will report F1-scores by traversal strategy across the three-tier model progression. Under H4, we expect BFS and DFS to both outperform random, but to show task-dependent differences. The three-tier progression allows us to observe whether traversal sensitivity diminishes as pre-training domain knowledge increases: BiLSTM (no pre-training) should be most traversal-sensitive, BERT (NL pre-training) may show moderate sensitivity, and UniXcoder (code pre-training) may exhibit the weakest traversal effects if code-aware pre-training induces traversal-invariant representations. The positional encoding ablation (reported as a supplementary analysis) will reveal whether traversal effects are mediated by PE choice.
+
+\subsection{Identifier Ablation}
+
+Table~\ref{tab:ablation} will report F1-scores for AST+ID and AST$-$ID across the three-tier model progression. We define two derived metrics: $\delta_{\text{ID}} = \text{F1}(\text{AST+ID}) - \text{F1}(\text{AST-ID})$ (identifier contribution) and $\delta_{\text{struct}} = \text{F1}(\text{AST-ID}) - \text{F1}(\text{Raw Code})$ (pure structural contribution). If $\delta_{\text{ID}}$ is large and $\delta_{\text{struct}}$ is negligible, then AST-Seq gains are primarily driven by carrying identifier names within structured tokens, not by structural topology. If $\delta_{\text{ID}} \approx 0$, the model has abstracted away identifiers and relies on node type labels alone.
+
+\begin{table}[tb]
+\centering
+\caption{Identifier Ablation Expected Results: F1-scores for AST+ID vs.\ AST$-$ID ($\pm$ std).}\label{tab:ablation}
+\begin{tabular}{lccc}
+\toprule
+Condition & BiLSTM & BERT-base & UniXcoder \\
+\midrule
+\multicolumn{4}{c}{\textit{BigCloneBench}} \\
+AST+ID   & \RQFourBFS{}  & \RQFourBFS{}  & \RQFourBFS{} \\
+AST$-$ID & \RQFourDFS{}  & \RQFourDFS{}  & \RQFourDFS{} \\
+$\delta_{\text{ID}}$ & TBD & TBD & TBD \\
+\midrule
+\multicolumn{4}{c}{\textit{OJClone}} \\
+AST+ID   & \RQFourBFS{}  & \RQFourBFS{}  & \RQFourBFS{} \\
+AST$-$ID & \RQFourDFS{}  & \RQFourDFS{}  & \RQFourDFS{} \\
+$\delta_{\text{ID}}$ & TBD & TBD & TBD \\
+\midrule
+\multicolumn{4}{c}{\textit{Devign}} \\
+AST+ID   & \RQFourBFS{}  & \RQFourBFS{}  & \RQFourBFS{} \\
+AST$-$ID & \RQFourDFS{}  & \RQFourDFS{}  & \RQFourDFS{} \\
+$\delta_{\text{ID}}$ & TBD & TBD & TBD \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Cross-Analysis}
+
+Beyond per-RQ tables, we will report:
+\begin{itemize}
+\item \textbf{Interaction plot (representation $\times$ fine-tuning regime):} A $3 \times 3$ panel (3 representations: Raw, AST, IR; 3 regimes: Traditional NN, Full FT, LoRA) showing how $\Delta_{\text{struct}}$ evolves as the model's capacity to adapt token embeddings decreases. A monotonic downward trend supports the vocabulary gap hypothesis.
+\item \textbf{Three-tier traversal progression:} A side-by-side comparison of traversal effects across BiLSTM, BERT, and UniXcoder, to determine whether pre-training domain knowledge attenuates traversal sensitivity. Visualized as a model $\times$ traversal interaction plot with Random baseline as reference.
+\item \textbf{Fragmentation correlation:} Pearson $r$ between subword fragmentation rate and $\Delta_{\text{struct}}$ across all pre-trained model conditions in RQ2 and RQ3. A negative correlation directly quantifies the vocabulary gap.
+\item \textbf{Precision--recall decomposition:} For each primary result table, we report whether F1 gains or losses are accompanied by symmetric P/R shifts (indicating a genuine representational improvement) or asymmetric shifts (indicating a shift in the model's decision threshold that compensates in F1 without improving discriminative quality).
+\item \textbf{Identifier contribution ratio:} $\rho = \delta_{\text{ID}} \,/\, \Delta_{\text{AST}}$ per model and dataset, quantifying what fraction of the AST advantage is attributable to identifiers. Cross-referenced with RQ4 traversal results to test whether identifier-driven models are more traversal-sensitive than structure-driven models.
+\item \textbf{PE--traversal interaction:} Whether traversal effects under BERT and UniXcoder shrink or vanish under relative positional encoding compared to absolute sinusoidal PE.
+\end{itemize}
+
+%% ===================================================================
+\section{Discussion}\label{sec:discussion}
+
+\subsection{Interpretation of Expected Outcomes}
+
+The experimental framework is designed to produce a fine-grained picture of \emph{when} and \emph{why} structured representations help. We anticipate three qualitatively distinct outcome patterns:
+
+\textbf{Pattern A --- No advantage anywhere (H1, H2, H3, H4 all hold).} If structured representations consistently fail to outperform raw code across all paradigms, the implication is clear: the serialization barrier and vocabulary gap jointly erase any structural signal. The field would benefit from developing genuinely graph-native architectures (e.g., GNNs operating on the original graph) rather than serialized approximations. Existing results in the structured-representation literature would need to be reinterpreted as demonstrations of effective vocabulary engineering rather than structural understanding.
+
+\textbf{Pattern B --- Advantage only with task-specific vocabularies (H1 rejected, H2 and H3 hold).} If traditional NNs with task-trained vocabularies benefit from structured representations but pre-trained models do not, the implication is that structural tokens \emph{are} informative but the vocabulary gap in pre-trained models prevents them from being exploited. This would motivate vocabulary expansion techniques---adding structural tokens to the pre-training vocabulary and pre-training with structural serializations---as a prerequisite for benefiting from structured representations in the pre-trained model era.
+
+\textbf{Pattern C --- Advantage persists but is traversal-sensitive (H1, H2, H3 rejected, H4 holds).} If structured representations help across paradigms but performance varies significantly with traversal strategy, then the structural signal is real but dependent on an underexplored hyperparameter. This would motivate systematic traversal optimization as a standard component of structural representation pipelines, and would call for papers to specify and justify their traversal choices.
+
+\subsection{Beyond Purism: Mixed Outcomes and Task-Dependent Effects}
+
+The three patterns above describe \emph{uniform} outcomes---all hypotheses hold or all fail together. Reality is likely to be more textured. In particular, we anticipate that the following mixed patterns may emerge:
+
+\textbf{Mixed Pattern 0: The shared-vocabulary confound is less severe than expected.} The SPM BPE tokenizer for RQ1 was trained on a corpus where AST tokens outnumber raw code tokens 4.2$\times$ (69.1\% vs.\ 16.6\%; Table~\ref{tab:vocab-dist}). We trained independent representation-specific tokenizers (spm\_raw\_50k, spm\_struct\_50k) to test whether this imbalance materially affects fragmentation (Table~\ref{tab:indep-frag}). Raw code fragments at essentially the same rate regardless of which tokenizer encodes it (2.40--3.59 subwords/token), and structural representations degrade only modestly ($\sim$20\%) when encoded by a mismatched tokenizer. This suggests that fragmentation asymmetry is driven primarily by the \emph{inherent diversity} of each representation's vocabulary---raw code identifiers are inherently varied, structural type labels are inherently constrained---rather than by bias in the BPE merge tree. The practical implication is that the shared-vocabulary comparison in RQ1a, while not a perfect neutral arbitrator, is closer to fair than the raw corpus statistics suggest. RQ1b quantifies the residual sensitivity.
+
+\textbf{Mixed Pattern 2: AST wins, IR loses---fragmentation thresholds.} If AST-Seq shows consistent advantage over raw code while IR-Seq trails or is indistinguishable, the fragmentation rate is confirmed as a decisive mediator. The practical recommendation would bifurcate: use AST-derived representations but avoid IR-derived ones unless the tokenizer is specifically adapted. This pattern is the most likely to be observed given the multi-tokenizer analysis in Section~\ref{sec:motive} (Observation~4): modern large-vocabulary tokenizers preserve many AST labels intact while still fragmenting IR mnemonics.
+
+\textbf{Mixed Pattern 3: In the LLM era, the question shifts from ``does structure help'' to ``when and for whom.''} Instruction-tuned code LLMs capable of zero-shot task execution blur the distinction between representation scheme and model capability. A structurally serialized prompt (e.g., ``the AST of this function is \texttt{IfStatement ...}---is it a clone?'') may elicit different behaviour than raw code input, not because structure carries more information, but because the model's instruction-following distribution reacts to the format. Our framework, designed for fine-tuned encoder models, does not directly address this regime; but the hypotheses it formalizes provide the vocabulary and experimental template for future LLM-centric extensions.
+
+\subsection{Implications by Task}
+
+\textbf{For clone detection.} If H1 holds, the strong results achieved by AST-based and IR-based clone detection methods~\citep{yuan2023clone,wei2019cdlhd,white2016deep} may be attributable to their larger and more discriminative vocabularies rather than to structural insight. This does not invalidate their empirical results---vocabulary enrichment is a legitimate design choice---but recasts the interpretation from ``model learned structural semantics'' to ``model was given richer features.''
+
+\textbf{For vulnerability detection.} Vulnerability patterns often manifest in specific structural configurations (e.g., missing validation in a particular CFG path). If H2 or H3 holds, practitioners should prefer full fine-tuning over LoRA when using structured representations for vulnerability detection, or should consider vocabulary-augmented pre-training.
+
+\textbf{For code classification.} The traversal sensitivity (RQ4) may be most pronounced for tasks requiring comparison of code structure (clone detection) versus tasks requiring local context (classification). The random-order baseline provides a decisive test of whether structure matters at all for each task.
+
+\subsection{Structural Axes Beyond Classification: From Clone Detection to Measurement}
+
+The debate over whether structured representations genuinely capture program semantics has a practical counterpart: even if the structural signal is confounded by vocabulary and traversal effects, structured axes may still provide a \emph{better measurement space than raw tokens} for certain tasks. Our prior work on intermediate-code-based clone detection~\citep{yuan2023clone} demonstrates this tension concretely: the method achieved strong results ($F1 > 0.95$ on Type-3/Type-4 clones) by comparing programs in a structural (IR-graph) space rather than at the token level. The structural comparison was demonstrably more robust to renaming, reordering, and equivalent rewrites than token-based alternatives such as SourcererCC~\citep{sajnani2016sourcerercc}. However, it remained unclear whether the gain came from the structural topology per se, or from the richer, more discriminative vocabulary that the IR instruction set provided.
+
+This ambiguity has implications beyond clone detection. A growing body of work uses structural axes as \emph{measurement tools} for assessing code generation quality: AST tree-edit distance to quantify syntactic divergence, CFG descriptors to capture algorithmic change, and execution feasibility to ground both in behaviour. In such applications, the question is not ``does structure carry more information than tokens'' but ``do structural distances capture a different, complementary signal from token distances.'' Even if H1 holds---even if the serialization barrier means structural tokens convey no additional \emph{information} beyond what raw code already encodes---the structural measurement is still valuable because it is invariant to the surface transformations (renaming, reformatting, comment changes) that inflate token diffs but carry no semantic meaning. This invariance, which our fragmentation analysis (Section~\ref{sec:motive-vocab}) corroborates across multiple tokenizers, is a practical virtue independent of the ``structure-is-better'' claim.
+
+The relationship between our critical framework and these measurement applications is therefore complementary rather than adversarial~\citep{li2023understand}: our work quantifies when and why the structural signal is real versus an artifact, which in turn determines how to \emph{interpret} a structural distance measurement. If H1 holds, a large AST distance between two code fragments indicates a vocabulary shift that happens to correlate with meaningful change; if H1 is rejected, it indicates actual structural divergence. In either case, the distance is more informative than a token diff, and knowing which interpretation applies sharpens the conclusions one can draw from it. This is the constructive payoff of the critical analysis we advocate: it does not invalidate the use of structural representations, but furnishes the terms under which that use is justified.
+
+\subsection{Summary Judgment}
+
+Table~\ref{tab:summary} provides a qualitative summary of our expected outcomes, to be updated with quantitative results after the full experimental run.
+
+\begin{table}[tb]
+\centering
+\caption{Expected outcome summary (to be updated with experimental results).}\label{tab:summary}
+\begin{tabular}{lcccl}
+\toprule
+RQ & Hypothesis & Expected Verdict & Confound & Practical Implication \\
+\midrule
+RQ1 & H1 & Likely supported & Vocabulary size & Control vocab in comparisons \\
+RQ2 & H2 & Partially supported & Subword fragmentation & Prefer AST over IR for FT \\
+RQ3 & H3 & Likely supported & Frozen embeddings & Avoid LoRA for structured repr. \\
+RQ4 & H4 & Supported & Traversal order & Specify traversal; optimize per task \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{What Instead? A Constructive Roadmap}
+
+Our critique, if sustained by experimental results, carries an implicit prescription problem: if structured representations do not fundamentally outperform raw code under controlled conditions, what should the field do instead? We offer three constructive alternatives, ordered from lowest to highest engineering cost:
+
+\begin{enumerate}
+
+\item \textbf{Vocabulary-augmented pre-training.} The simplest intervention: extend the tokenizer vocabulary of a pre-trained code model to include the top-$k$ most frequent structural tokens (AST node labels, IR mnemonics) before continuing pre-training on a corpus that mixes raw code with serialized structural representations. This preserves the serialized-input paradigm while eliminating the subword fragmentation that we identify as a key confound. The cost is modest---a continued pre-training phase of a few billion tokens---and the experimental design is straightforward: compare the vocabulary-augmented model's $\Delta_{\text{struct}}$ against the standard model's, using the same RQ1--RQ4 framework.
+
+\item \textbf{Multi-view input.} Rather than replacing raw code with structured serializations, provide both views simultaneously: the raw code token sequence and the structured serialization as a parallel input stream, processed by a shared encoder with modality-specific position embeddings. In the encoder-only paradigm (RQ2, RQ3), this amounts to concatenating the two token sequences before encoding. In the decoder-only paradigm (LLM extension), it amounts to a two-part prompt where the model sees both representations and is instructed (via prompt engineering) to attend to the structural view when it provides disambiguating information. The hypothesis is that the raw code provides the tokenizer-friendly surface while the structured view provides disambiguation where surface tokens are ambiguous; neither alone suffices, but together they may exceed either.
+
+\item \textbf{Graph-native architectures.} The most fundamental alternative: abandon serialization entirely and feed the original graph (AST, CFG, or joint AST+CFG) directly into a graph neural network (GNN, GGNN, GAT, GIN). This eliminates the serialization barrier, the vocabulary gap (node labels can be embedded through learned lookup tables rather than pre-trained BPE tokenizers), and the traversal dilemma---the graph topology is preserved, not flattened. The practical barrier is that GNNs do not yet scale to the parameter counts that make pre-trained Transformers effective, and pre-training objectives for code graphs are less mature than masked language modelling for token sequences. But as GNN scalability improves (graph transformers, graph pre-training with contrastive objectives), this direction merits the community's continued investment.
+
+\end{enumerate}
+
+Each of these alternatives can be evaluated within the same experimental framework we prescribe in Section~\ref{sec:expt}, using the same datasets, metrics, and statistical tests. The framework is designed to be representation-agnostic: swapping the representation scheme from serialized AST to a GNN encoding of the original graph requires only replacing the input encoding module while keeping the rest of the pipeline intact.
+
+\subsection{Future Directions}
+
+Beyond populating the placeholder results and implementing the constructive alternatives above, several extensions are natural:
+
+\begin{enumerate}
+\item \textbf{Graph-native architectures.} Compare serialized representations against GNN-based models (GGNN, GIN, GAT) that operate directly on graph topology without serialization. If GNNs significantly outperform serialized approaches, it confirms that serialization is lossy.
+
+\item \textbf{Vocabulary-augmented pre-training.} Pre-train a code model where the vocabulary explicitly includes structural tokens (AST node types, IR mnemonics) and the pre-training corpus includes serialized structural representations alongside raw code. Compare against standard pre-trained models on the same downstream tasks.
+
+\item \textbf{PDG and DFG analysis.} Extend the framework to program dependence graphs and data-flow graphs, which encode richer cross-cutting dependencies than ASTs or CFGs alone.
+
+\item \textbf{More languages and tasks.} Python (indentation-based structure vs.\ brace-based), JavaScript (prototype-based semantics), and Go (goroutines/concurrency). Tasks: code summarization, program repair, type inference.
+
+\item \textbf{LLM-centric evaluation.} Extend the analysis to instruction-tuned code LLMs (Code Llama, DeepSeek-Coder, StarCoder~2) to test whether scale changes the relationship between structure and tokens.
+\end{enumerate}
+
+%% ===================================================================
+\section{Threats to Validity}\label{sec:threats}
+
+\paragraph{Construct validity.} Our operationalization of ``structural information'' through AST, CFG, and IR serializations reflects the dominant paradigm but may not capture all representational forms (e.g., PDG, DFG, value-flow graphs). The CFG and IR representations are derived from tree-sitter AST analysis rather than from compiled artifacts (bytecode or LLVM IR); this trades precision for generality (no compilation required) but may miss information present in true compiler-level representations. The identifier-ablation variant partially addresses structure-versus-naming. The shared SPM vocabulary in RQ1 was intended as a neutral baseline, but the corpus imbalance revealed in Table~\ref{tab:vocab-dist}---AST tokens comprising 69\% of the training corpus---introduces a tokenizer-level bias that we did not anticipate. We report both vocabulary coverage and corpus distribution to allow readers to calibrate the fairness of the shared-vocabulary comparison.
+
+\paragraph{Internal validity.} The main confound is sequence length: structured sequences are systematically longer than raw code (Table~\ref{tab:frag}), which may dilute attention or increase the effective training budget. We control for this by reporting length distributions and, in a sensitivity analysis, by length-normalizing the attention. The LoRA rank $r$ is a hyperparameter that affects both capacity and the degree of vocabulary adaptation; we sweep $r \in \{8, 16, 32\}$ to characterize this sensitivity.
+
+\paragraph{External validity.} The framework covers two languages (Java, C/C++) and three tasks. Results may not transfer to other languages, tasks, or more recent model architectures (e.g., decoder-only code LLMs). The framework is designed to be extensible: adding a new representation scheme or model requires only implementing the corresponding extraction, serialization, and training modules.
+
+\paragraph{Conclusion validity.} All hypotheses are tested with appropriate statistical methods and reported with effect sizes. The pre-registered design (placeholder tables, fixed hypotheses) constrains researcher degrees of freedom. Placeholder values make the current manuscript an explicit plan, reducing the risk of $p$-hacking when results are populated.
+
+%% ===================================================================
+\section{Conclusion}\label{sec:conclusion}
+
+This paper examined whether structured code representations---ASTs, CFGs, and IRs---provide genuine representational benefits over raw source code tokens, or whether their reported advantages are better explained by vocabulary enrichment, traversal-induced token ordering, and the interaction between tokenizer subword decomposition and fine-tuning strategy. We identified three under-examined dimensions: the \emph{serialization barrier}, the \emph{vocabulary gap} (which is especially consequential under LoRA fine-tuning where embeddings are frozen), and \emph{traversal sensitivity}. We formalized these as four research questions with corresponding hypotheses, and presented a comprehensive experimental framework with four sub-experiments designed to isolate each dimension under controlled conditions.
+
+Our analysis suggests that the field has systematically over-attributed performance gains to ``structural understanding'' while under-examining confounds: (1) vocabulary enrichment---structured representations often have larger, more discriminative vocabularies than raw code; (2) token order---different serialization strategies produce different sequences from the same graph; and (3) the subword recomposition burden imposed by pre-trained tokenizers on structural tokens. We further identify a pre-experiment confound: the corpus used to train a ``shared'' tokenizer for controlled comparison is itself imbalanced (AST tokens dominate 4.2$\times$ over raw code), which may violate the premise of a fair lexical baseline. Only by controlling for these confounds can we determine whether explicit structural representations genuinely capture something that raw code tokens do not.
+
+\textbf{Future work.} We will execute the full experimental suite to populate the placeholder results. Beyond that, extensions to graph-native architectures, vocabulary-augmented pre-training, richer structural representations (PDG, DFG), and instruction-tuned code LLMs are natural next steps.
+
+\FloatBarrier
+
+%% ===================================================================
+\backmatter
+\section*{Statements and Declarations}
+\bmhead{Funding}
+The authors did not receive support from any organization for the submitted work.
+
+\bmhead{Competing interests}
+The authors declare that they have no competing financial or non-financial interests that are relevant to the content of this article.
+
+\bmhead{Author contributions}
+Dawei Yuan conceived the research questions, performed the motivating analysis, designed the experimental framework, and drafted the manuscript. Guojun Liang contributed to the experimental design and data analysis. Bin Liu contributed to the formal analysis and manuscript revision. Suping Liu contributed to the experimental framework and manuscript revision. All authors read and approved the final manuscript.
+
+\bmhead{Data and code availability}
+The experimental framework code, dataset preprocessing scripts, and reproduction instructions are available at \url{https://github.com/davidyuan666/structured-code-repr-analysis}. The preprocessed structured-representation dataset (BCBench, Devign, OJClone with raw, AST-Seq, CFG-Seq, and IR-Seq schemes, plus the shared SPM BPE tokenizer) is available at \url{https://www.modelscope.cn/datasets/davidyuan666/StructuredCodeRepresentations}.
+
+\bmhead{Ethics approval}
+Not applicable. This study does not involve human participants, their data, or animals.
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+
+\end{document}
