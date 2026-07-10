@@ -30,16 +30,16 @@ echo "  transformers sentencepiece tree-sitter sklearn peft datasets ... OK"
 echo ""
 echo "[3/4] Downloading dataset from ModelScope..."
 
-ZIP_PATH="code/data/processed/structured-code-repr.zip"
+ZIP_PATH="code/data/processed/processed_v2.zip"
 if [ -f "$ZIP_PATH" ] && [ $(stat -c%s "$ZIP_PATH" 2>/dev/null || echo 0) -gt 100000000 ]; then
-    echo "  Found existing zip ($(du -h "$ZIP_PATH" | cut -f1)), skip download"
+    echo "  Found processed_v2.zip ($(du -h "$ZIP_PATH" | cut -f1)), skip download"
 elif [ -f "code/data/processed.zip" ] && [ $(stat -c%s "code/data/processed.zip" 2>/dev/null || echo 0) -gt 100000000 ]; then
-    echo "  Found processed.zip, using it"
+    echo "  Found old processed.zip, using it as fallback"
     ZIP_PATH="code/data/processed.zip"
 else
-    echo "  Auto-download not reliable on AutoDL. Please manually upload:"
-    echo "    structured-code-repr.zip (2.5 GB) from your local machine"
-    echo "    to ~/structured-code-repr-analysis/code/data/processed/"
+    echo "  Please manually download processed_v2.zip (8.9 GB) from:"
+    echo "    https://www.modelscope.cn/datasets/davidyuan666/StructuredCodeRepresentations"
+    echo "  Place it at: ~/structured-code-repr-analysis/code/data/processed_v2.zip"
     echo "  Then re-run: bash setup_autodl.sh"
     exit 1
 fi
@@ -48,7 +48,7 @@ echo "  Extracting ..."
 unzip -o "$ZIP_PATH" -d code/data/processed/ 2>/dev/null
 if [ $? -ne 0 ]; then
     echo "  ERROR: unzip failed. The file may be corrupted."
-    echo "  Please re-upload structured-code-repr.zip manually."
+    echo "  Please re-upload processed_v2.zip manually."
     exit 1
 fi
 echo "  Done"
